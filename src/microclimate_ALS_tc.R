@@ -17,6 +17,7 @@ library(here)
 library(XML)
 library(stats)
 library(tibble)
+library(rprojroot)
 source("src/treespecies.R")
 # Parameters
 las_file <- here("data/ALS/las_mof.las")  # Path to ALS point cloud file
@@ -111,6 +112,9 @@ st_write(sf_points, output_gpkg, delete_layer = TRUE)
 
 # Export LAD profiles to XML
 export_lad_to_envimet3d <- function(lad_df, file_out = "tls_envimet_tree.pld") {
+  SeasonProfile = c(0.3, 0.3, 0.3, 0.4, 0.7, 1, 1, 1, 0.8, 0.6, 0.3, 0.3)
+  BlossomProfile = c(0, 0, 0.5, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+  
   lad_df <- lad_df[!is.na(lad_df$lad), ]
   lad_df$i <- as.integer(factor(lad_df$x))
   lad_df$j <- as.integer(factor(lad_df$y))
@@ -183,9 +187,10 @@ export_lad_to_envimet3d <- function(lad_df, file_out = "tls_envimet_tree.pld") {
                            .children = paste(lad_lines, collapse = "\n"))
     addChildren(plant_node, lad_node)
     addChildren(plant_node, newXMLNode("Season-Profile",
-                                       paste(sprintf("%.5f", rep(1, 12)), collapse = ",")))
+                                       paste(sprintf("%.5f", SeasonProfile), collapse = ",")))
     addChildren(plant_node, newXMLNode("Blossom-Profile",
-                                       paste(sprintf("%.5f", rep(0, 12)), collapse = ",")))
+                                       paste(sprintf("%.5f", BlossomProfile), collapse = ",")))
+    
     addChildren(plant_node, newXMLNode("L-SystemBased", "0"))
     
     addChildren(root, plant_node)
