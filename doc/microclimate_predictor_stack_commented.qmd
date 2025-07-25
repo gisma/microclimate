@@ -1,0 +1,207 @@
+---
+title: "Microclimate Predictor Stack Tutorial"
+author: "Chris Reudenbach, Lena Perzlmaier"
+date: "2025-07-16"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    code-fold: true
+    code-tools: true
+    mermaid:
+      enabled: true
+engine: markdown
+---
+
+# Introduction
+
+This tutorial documents the modular processing chain for deriving microclimate-relevant predictors from ALS (Airborne Laser Scanning) data.\
+It is based on the script `20_microclimate_predictor_stack.R`, which builds a raster predictor stack used in microclimate or ecological modeling.
+
+------------------------------------------------------------------------
+
+# 1. Overall Workflow Diagram
+
+```{mermaid}
+flowchart TD
+    LAS["LAS Input Data"]
+    DEM["Normalize & Create DEM/DSM/CHM"]
+    PM["Pixel-Level Metrics"]
+    SEG["Tree Segmentation"]
+
+    TOPO["Topographic Variables"]
+    VOX["Voxel Metrics: VCI, LAD, Entropy"]
+    LAD["LAD Profiles"]
+    CLU["Tree Cluster Analysis"]
+
+    MERGE["Merge: Predictor Stack"]
+    OUT["Final Raster Predictor Stack"]
+
+    LAS --> DEM
+    LAS --> PM
+    LAS --> SEG
+
+    DEM --> TOPO
+    PM --> VOX
+    SEG --> LAD
+    LAD --> CLU
+
+    TOPO --> MERGE
+    VOX --> MERGE
+    CLU --> MERGE
+
+    MERGE --> OUT
+```
+
+This diagram shows the data flow:
+
+-   The LAS file is used in 3 parallel branches.
+-   Topographic, voxel, and tree-based metrics are computed independently.
+-   Finally, all are merged into one raster predictor stack.
+
+------------------------------------------------------------------------
+
+# 2. Project Setup
+
+``` r
+# Load required packages and environment
+require(envimaR)
+require(rprojroot)
+
+# Determine root directory of project (requires .Rproj or .here file)
+root_folder <- find_rstudio_root_file()
+
+# Load envrmt list with all folder paths and EPSG settings
+source(file.path(root_folder, "src/000-rspatial-setup.R"), echo = TRUE)
+```
+
+-   `envimaR` handles dynamic folder structures.
+-   `envrmt` contains paths like `path_lidar_raster`, `path_topo`, etc.
+-   `epsg_number`, `bbox` and other global spatial variables are set here.
+
+------------------------------------------------------------------------
+
+# 3. Normalizing the LAS Catalog
+
+``` r
+ctg <- readLAScatalog(las_fileFN)
+ctg_base <- normalize_height(ctg, knnidw(k = 6L, p = 2))
+```
+
+-   A LAS catalog is loaded and normalized.
+-   Ground points are removed to prepare for CHM and DSM creation.
+
+------------------------------------------------------------------------
+
+# 4. Terrain Models
+
+``` r
+dem <- rasterize_terrain(ctg, res = 1, knnidw(k = 6L, p = 2))
+dsm <- rasterize_canopy(ctg, res = 1, algorithm = pitfree())
+chm <- rasterize_canopy(ctg_base, res = 1, pitfree(c(0,2,5,10,15)))
+```
+
+-   **DEM** (Digital Elevation Model) is created from ground returns.
+-   **DSM** (Surface Model) and **CHM** (Canopy Height Model) from canopy points.
+
+------------------------------------------------------------------------
+
+# 5. Topographic Derivatives
+
+``` r
+slope <- terrain(dem, "slope")
+aspect <- terrain(dem, "aspect")
+TPI <- terrain(dsm, "TPI")
+```
+
+-   Derived terrain parameters used for modeling light, moisture, and temperature.
+
+------------------------------------------------------------------------
+
+# 6. Pixel-Level Metrics
+
+``` r
+pixel_stdmetrics <- pixel_metrics(ctg_base, .stdmetrics, res = 1)
+pixel_LAD <- pixel_metrics(ctg_base, ~as.numeric(cv(LAD(Z, dz = 1, k = 0.87)$lad)), res = 1)
+pixel_entropy <- pixel_metrics(ctg_base, ~as.numeric(entropy(Z, by = 1.0)), res = 1)
+pixel_VCI <- pixel_metrics(ctg_base, ~as.numeric(VCI(Z, zmax = 40, by = 1.0)), res = 1)
+```
+
+These voxel-based metrics represent vertical structure:
+
+-   **LAD** = Leaf Area Density
+-   **VCI** = Vertical Complexity Index
+-   **Entropy** = point height diversity
+-   `ipground` = intensity of ground points (optional)
+
+------------------------------------------------------------------------
+
+# 7. Tree Segmentation and Metrics
+
+``` r
+ctg_seg <- segment_trees(ctg_base, li2012())
+hulls <- catalog_apply(ctg_seg, tree_fn)
+lad_vox <- lad.voxels(ctg_base, grain.size = 1, k = 0.87, maxP = 40)
+```
+
+-   Trees are segmented using the Li et al. (2012) method.
+-   `tree_fn` generates convex hulls or crown shapes.
+-   LAD profiles are voxelized and linked to hulls.
+
+------------------------------------------------------------------------
+
+# 8. Clustering Tree Profiles
+
+``` r
+clust_model <- KMeans_arma(data_clust, clusters = 10, n_iter = 500)
+trees_lad$cluster <- predict_KMeans(data_clust, clust_model)
+```
+
+-   LAD metrics are dimensionally reduced (PCA or manually).
+-   Clustering assigns structural class per tree.
+-   Result is written as vector layer and rasterized.
+
+------------------------------------------------------------------------
+
+# 9. Predictor Stack Creation
+
+``` r
+forest_structure_metrics <- c(rast(topoFN), rast(pmetricsFN), rast(tree_clus_rasFN))
+writeRaster(forest_structure_metrics, predstack_forest_metricsFN, overwrite = TRUE)
+```
+
+-   Combines topography, pixel metrics, and clusters into one multiband raster.
+
+------------------------------------------------------------------------
+
+# 10. Optional: Solar Irradiance via GRASS
+
+``` r
+linkGRASS7(dem, gisdbase = root_folder, location = "MOF2")
+execGRASS("r.sun.hourly", parameters = list(...))
+```
+
+-   Optionally runs `r.sun.hourly` from GRASS to model solar radiation.
+-   Resulting hourly radiation maps can be included in predictor stacks.
+
+------------------------------------------------------------------------
+
+# Output Summary
+
+| Layer                       | Type      | Description                          |
+|-----------------------|------------------|-------------------------------|
+| `topo.tif`                  | Raster    | Terrain-derived variables            |
+| `all_pixel_metrics.tif`     | Raster    | Structural voxel statistics          |
+| `lad_hull_raster.tif`       | Raster    | LAD metrics aggregated to tree hulls |
+| `tree_cluster.tif`          | Raster    | Cluster class per tree segment       |
+| `pred_forest_structure.tif` | Raster    | Full predictor stack for modeling    |
+| `trees_lad_clean.rds`       | DataFrame | Tree-level statistics for analysis   |
+
+------------------------------------------------------------------------
+
+# Questions or Extensions
+
+-   Add modeling scripts (e.g. Random Forest, GLM, XGBoost)
+-   Visualize clusters with `tmap` or `leaflet`
+-   Combine with microclimate sensors or UAV data

@@ -1,0 +1,100 @@
+---
+title: "Helper Functions for Microclimate Predictor Stack"
+author: "Chris Reudenbach"
+date: "2025-07-16"
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    code-fold: true
+    code-tools: true
+engine: knitr
+---
+
+# Introduction
+
+This document explains the **custom helper functions** used in the `microclimate_predictor_stack.R` script for preprocessing and analyzing LiDAR data in R. The functions support pixel-level metrics computation, raster template creation, VRT mosaicking, and tree hull extraction.
+
+------------------------------------------------------------------------
+
+# .stdmetrics()
+
+``` r
+#' @title .stdmetrics
+#' @description Berechnet Standardmetriken für LiDAR Rasterzellen
+.stdmetrics <- function(z, i, ...) {
+  return(list(
+    zmax = max(z, na.rm = TRUE),            # Maximum height
+    zmean = mean(z, na.rm = TRUE),          # Mean height
+    zsd = sd(z, na.rm = TRUE),              # Standard deviation of heights
+    zkurto = moments::kurtosis(z, na.rm = TRUE), # Kurtosis (peakedness of distribution)
+    zskew = moments::skewness(z, na.rm = TRUE),  # Skewness (asymmetry)
+    zq25 = quantile(z, 0.25, na.rm = TRUE), # 25th percentile
+    zq50 = quantile(z, 0.5, na.rm = TRUE),  # Median height
+    zq75 = quantile(z, 0.75, na.rm = TRUE), # 75th percentile
+    zpulse = length(z)                      # Number of returns (pulse count)
+  ))
+}
+```
+
+Used to derive **standard height-based metrics** from LiDAR returns per raster cell using `pixel_metrics()`.
+
+------------------------------------------------------------------------
+
+# get_vrt_img()
+
+``` r
+#' @title get_vrt_img
+#' @description Creates a VRT from multiple GeoTIFF files in a directory
+get_vrt_img <- function(name, path, pattern) {
+  tifs <- list.files(path = path, pattern = paste0(pattern, ".tif$"), full.names = TRUE)
+  vrt <- file.path(path, paste0(name, ".vrt"))
+  if (file.exists(vrt)) file.remove(vrt)
+  gdal_utils(util = "buildvrt", source = tifs, destination = vrt)
+  return(vrt)
+}
+```
+
+Used to dynamically generate a **VRT (virtual raster stack)** from multiple `.tif` files with a matching pattern, e.g. `"lad_metrics"`.
+
+------------------------------------------------------------------------
+
+# tree_fn()
+
+``` r
+#' @title tree_fn
+#' @description Creates convex hulls from segmented trees in LAS catalogs
+tree_fn <- function(las, ...) {
+  if (is.empty(las)) return(NULL)                   # Skip if empty
+  las <- filter_poi(las, !is.na(treeID))            # Keep only trees
+  if (npoints(las) == 0) return(NULL)               # Skip if no points
+  dt <- data.table::as.data.table(las@data)
+  dt <- dt[, .(X = mean(X), Y = mean(Y)), by = treeID]  # Mean location per tree
+  points_sf <- st_as_sf(dt, coords = c("X", "Y"), crs = sf::st_crs(las))
+  hulls <- st_convex_hull(st_union(points_sf))      # Create unified convex hull
+  return(hulls)
+}
+```
+
+Used with `catalog_apply()` to derive **convex hull geometries** from segmented tree point clouds.
+
+------------------------------------------------------------------------
+
+# template_raster()
+
+``` r
+#' @title template_raster
+#' @description Creates an empty raster template based on bounding box and resolution
+template_raster <- function(bbox, crs, res = 1.0) {
+  if (inherits(bbox, "sf")) bbox <- st_bbox(bbox)
+  r <- terra::rast(xmin = bbox["xmin"], xmax = bbox["xmax"],
+                   ymin = bbox["ymin"], ymax = bbox["ymax"],
+                   resolution = res, crs = crs)
+  return(r)
+}
+```
+
+Generates a blank `terra::rast` object for rasterizing vector geometries such as LAD polygons or tree hulls.
+
+------------------------------------------------------------------------

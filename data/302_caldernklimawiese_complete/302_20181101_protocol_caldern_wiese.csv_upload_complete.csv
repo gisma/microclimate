@@ -1,0 +1,39 @@
+Section,Subsection,Question,Answer,Explain,Action_taken,Comment,eventdatetime,inspector,sitename
+Section1: Core Area,Surface Condition,Pasture mowed (y/n),n,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,Grown (date on next trimming) (y/n),summer 2019,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,Minor debris removed (y/n),n,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,Major debris removed (y/n),n,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,observe Treegrowth (Cutting date) (y/n),n,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,NULL,NULL,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,Fence Condition,Good (y/n),y,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,Minor reparations needed (y/n),n,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,Major reparations needed (y/n),n,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,NULL,NULL,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+Section2: Tower / Pople,NULL,Rust present (y/n),n,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,Nests (bird, wasp, etc.) (y/n),n,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,Plants, animals (y/n),n,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,Stability (y/n),y,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,Good condition (y/n),y,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,NULL,NULL,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+Section3: Logger Enclosure,Exterior,Breaches or openings (y/n),n,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,Dirt present (y/n),n,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,Ant or termites lines going into enclosure  (y/n),n,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,Exterior in good condition (y/n),y,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,NULL,NULL,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,Interior,Humidity indicator: Dessicant item pink? (y/n),n,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,Ant or termintes present (y/n),n,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,Condition of sensor cables (good/broken/rust/salt deposits/exposed wires),good,replace Cable WIESE soilheatflow,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,Interior in good condition (y/n),y,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,NULL,NULL,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+Section4: Power,Solar panel,Surface of panel cleaned  (y/n),y,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,Check voltage out of the panel  (y/n) (value),n,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,Cable condition (explain),good,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,Panel in good condition (y/n),y,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,Others (explain),NULL,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,NULL,NULL,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,Battery,Condition of terminals and cables,NULL,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,Voltage out of battery (y/n) (value),y,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,Battery in good condition (y/n),y,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,NULL,NULL,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,NULL,NULL,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
+NULL,NULL,NULL,NULL,NULL,NA,NA,2018-11-01 00:00:00,Sophia Böckler,Caldern_Wiese
