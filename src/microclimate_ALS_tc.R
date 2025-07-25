@@ -25,8 +25,8 @@ res_z  <- 1                                # Vertical resolution of voxels (mete
 k      <- 0.3                               # Light extinction coefficient for LAD
 scale_factor <- 1.2                        # Optional scaling factor for LAD values
 crs_code <- 25832                          # EPSG code of target CRS
-output_gpkg <- "output/envimet_tree_points.gpkg"      # Output vector layer with tree positions
-xml_output_file <- "output/tls_envimet_trees.pld"      # Output PLANT3D XML file
+output_gpkg <- "data/envimet/envimet_p3dtree_points.gpkg"      # Output vector layer with tree positions
+xml_output_file <- "data/envimet/als_envimet_trees.pld"      # Output PLANT3D XML file
 species_raster <- rast(sprintf("data/aerial/%s_%sm.tif", "agg_cleand", res_xy)) # Tree species raster (classified)
 n_clusters <- 100                          # Number of LAD profile clusters
 
