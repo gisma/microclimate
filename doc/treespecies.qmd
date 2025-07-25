@@ -1,0 +1,116 @@
+execute: false
+
+---
+title: "Tree Species Classification Cleaning with OTB and Terra"
+format: html
+execute:
+  eval: false
+---
+
+```{r setup}
+# Load libraries
+library(terra)
+library(RColorBrewer)
+library(link2GI)
+library(envimaR)
+library(tools)
+library(mapview)
+library(dplyr)
+```
+
+## 1. Setup and Environment
+
+```{r env-setup}
+# Project root and OTB environment
+root_folder <- rprojroot::find_rstudio_root_file()
+otb <- link2GI::linkOTB(searchLocation = "~/apps/OTB-9.1.0-Linux/")
+Sys.setenv(OTB_APPLICATION_PATH = file.path(dirname(as.character(otb$pathOTB)), "lib/otb/applications"))
+Sys.setenv(PATH = paste(otb$pathOTB, Sys.getenv("PATH"), sep = ":"))
+```
+
+## 2. Parameters and Class Legend
+
+```{r parameters}
+target_res <- 1
+fn <- "5-25_MOF_rgb"
+epsg <- 25832
+sapflow_ext <- raster::extent(477500, 478218, 5631730, 5632500)
+
+ts <- data.frame(
+  ID = 1:12,
+  value = c("agriculture", "alder", "ash", "beech", "douglas_fir", "larch",
+            "oak", "pastures", "roads", "settlements", "spruce", "water")
+)
+```
+
+## 3. Load and Preprocess Species Classification
+
+```{r read-classification}
+sapflow_species <- readRDS("data/aerial/sfprediction_ffs_5-25_MOF_rgb.rds")
+raster::writeRaster(sapflow_species, "data/aerial/prediction_ffs.tif", overwrite = TRUE)
+sapflow_species <- raster::crop(sapflow_species, sapflow_ext)
+raster::writeRaster(sapflow_species, "data/aerial/prediction_ffs_cut.tif", overwrite = TRUE)
+```
+
+## 4. Majority Filtering (OTB)
+
+```{r otb-majority}
+cmr <- parseOTBFunction("ClassificationMapRegularization", otb)
+cmr$io.in <- "data/aerial/prediction_ffs.tif"
+cmr$io.out <- "data/aerial/majority_out.tif"
+cmr$ip.radius <- "1"
+cmr$progress <- "true"
+filter_treespecies <- runOTB(cmr, gili = otb$pathOTB, quiet = FALSE, retRaster = TRUE)
+```
+
+## 5. Aggregate to 1 m Resolution
+
+```{r aggregate}
+r <- rast("data/aerial/majority_out.tif")
+cur_res <- res(r)[1]
+fact <- round(target_res / cur_res)
+if (target_res <= cur_res) stop("Target resolution is lower than input resolution.")
+r_agg <- aggregate(r, fact = fact, fun = median, na.rm = TRUE)
+outfile <- sprintf("data/aerial/%s_%sm.tif", tools::file_path_sans_ext(basename("data/aerial/aggregate.tif")), target_res)
+writeRaster(r_agg, outfile, overwrite = TRUE)
+```
+
+## 6. Contextual Correction (Douglas → Beech/Oak)
+
+```{r contextual-replace}
+replace_douglas_in_buche_eiche <- function(rast_input,
+                                           window_size = 5,
+                                           douglas_value = 5,
+                                           target_values = c(4, 7),
+                                           target_res = 1.0) {
+  if (!inherits(rast_input, "SpatRaster")) stop("Input must be SpatRaster")
+  if (window_size %% 2 == 0) stop("window_size must be odd")
+  w <- matrix(1, nrow = window_size, ncol = window_size)
+  r_mode <- focal(rast_input, w = w, fun = modal, na.policy = "omit", na.rm = TRUE, progress = "text")
+  is_douglas <- rast_input == douglas_value
+  is_oak_beech_mode <- r_mode %in% target_values
+  replace_mask <- is_douglas & is_oak_beech_mode
+  r_new <- rast_input
+  r_new[replace_mask] <- r_mode[replace_mask]
+  writeRaster(r_new, sprintf("data/aerial/%s_%sm.tif", "agg_cleand", target_res), overwrite = TRUE)
+  return(r_new)
+}
+species_cleaned <- replace_douglas_in_buche_eiche(r_agg, window_size = 5)
+```
+
+## 7. Visualize Results
+
+```{r visualize, eval=interactive()}
+mapviewOptions(fgb = FALSE)
+m1 <- mapview(filter_treespecies, col.regions = brewer.pal(12, "Paired"), at = ts$ID)
+m2 <- mapview(species_cleaned, col.regions = brewer.pal(12, "Paired"), at = ts$ID)
+m1 + m2
+```
+
+------------------------------------------------------------------------
+
+## Notes
+
+-   This tutorial uses OTB and `terra` for spatial filtering and aggregation.
+-   Douglas-fir patches are contextually reassigned based on majority filtering.
+-   Resulting maps can be explored interactively via `mapview`.

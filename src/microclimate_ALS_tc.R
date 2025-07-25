@@ -18,9 +18,9 @@ library(XML)
 library(stats)
 library(tibble)
 library(rprojroot)
-source("src/treespecies.R")
+#source("src/treespecies.R")
 # Parameters
-las_file <- here("data/ALS/las_mof.las")  # Path to ALS point cloud file
+las_file <- here("data/ALS/output_cropped.laz")  # Path to ALS point cloud file
 res_xy <- 1                                # Horizontal resolution of voxels (meters)
 res_z  <- 1                                # Vertical resolution of voxels (meters)
 k      <- 0.3                               # Light extinction coefficient for LAD
@@ -37,11 +37,11 @@ dir.create("output", showWarnings = FALSE, recursive = TRUE)
 las <- readLAS(las_file)
 crs(las) <- "EPSG:25832"
 # Crop LAS file to extent
-las_cropped <- clip_rectangle(las,sapflow_ext@xmin, sapflow_ext@xmax, sapflow_ext@ymin, sapflow_ext@ymax)
+#las_cropped <- clip_rectangle(las,sapflow_ext@xmin, sapflow_ext@xmax, sapflow_ext@ymin, sapflow_ext@ymax)
 
 # Write to file
-writeLAS(las_cropped, "data/ALS/output_cropped.laz")
-las <- readLAS("data/ALS/output_cropped.laz")
+#writeLAS(las_cropped, "data/ALS/output_cropped.laz")
+#las <- readLAS("data/ALS/output_cropped.laz")
 las <- normalize_height(las, knnidw(k = 6, p = 2))
 las <- filter_poi(las, Z > 0)  # Remove ground points
 
