@@ -749,7 +749,7 @@
     "href": "index.html",
     "title": "Envi_Met TLS-tree-climate",
     "section": "",
-    "text": "This course teaches how to use terrestrial laser scanning (TLS) to model individual trees and their effects on microclimate. You’ll learn how to turn detailed 3D scans into leaf area density (LAD) profiles and use them in ENVI-met for realistic tree simulations.\nWhat you’ll learn: What LAD means and why it matters for tree–climate interaction\n\nHow to process TLS data into vertical tree profiles\nHow to create 3D tree objects from LAD for use in ENVI-met\nHow to choose between simple scaling and light-based LAD models\n\nThis course is hands-on, focused, and designed for clear outcomes: understanding tree structure, visualizing it, and using it in a climate model.\n\n8"
+    "text": "This course teaches how to use terrestrial laser scanning (TLS) to model individual trees and their effects on microclimate. You’ll learn how to turn detailed 3D scans into leaf area density (LAD) profiles and use them in ENVI-met for realistic tree simulations.\nWhat you’ll learn: What LAD means and why it matters for tree–climate interaction\nThis course is hands-on, focused, and designed for clear outcomes: understanding tree structure, visualizing it, and using it in a climate model."
   },
   {
     "objectID": "base/faq.html",
@@ -764,5 +764,12 @@
     "title": "Frequently asked Questions",
     "section": "",
     "text": "This is a senseless question to meet a meaningfull answer\n\n\n\n\n\n\n\n\n\nThis is a meaningful answer to a senseless question\n\n\n\n\n\n\n\n\n\nLearn More…\n\n\n\n\n\nThis is a even more meaningful answer to a senseless question"
+  },
+  {
+    "objectID": "index.html#commenting-on-the-course-pages",
+    "href": "index.html#commenting-on-the-course-pages",
+    "title": "Envi_Met TLS-tree-climate",
+    "section": "Commenting on the course pages",
+    "text": "Commenting on the course pages\nThis site uses utterances for comments via GitHub. To leave a comment, simply sign in with your GitHub account. If you don’t have one, you can create a free account here.\nYour comment will be publicly stored and appear directly below. No trackers or third-party cookies are used.\nNeed help? What is utterances and how does it work?"
   }
 ]

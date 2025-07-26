@@ -23,12 +23,10 @@ What LAD means and why it matters for tree–climate interaction
 
 This course is hands-on, focused, and designed for clear outcomes: understanding tree structure, visualizing it, and using it in a climate model.
 
-  <iframe src="doc/tree_voxel_viewer.html"
-          width="850"
-          height="560"
-          style="border: none; outline: none; display: block;"></iframe>
+## Commenting on the course pages
 
+This site uses [**utterances**](https://utteranc.es/) for comments via GitHub. To leave a comment, simply **sign in with your GitHub account**. If you don’t have one, you can [create a free account here](https://github.com/signup).
 
+Your comment will be publicly stored and appear directly below. No trackers or third-party cookies are used.
 
-
-8
+Need help? [What is utterances and how does it work?](https://utteranc.es/)
