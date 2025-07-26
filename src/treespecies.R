@@ -20,8 +20,28 @@
 #   - OTB 9.1+ with PATH and OTB_APPLICATION_PATH correctly set
 #
 # Copyright: Chris Reudenbach 2021, GPL (>= 3)
-# Git: https://github.com/gisma/envimetR.git
+# Git: https://github.com/gisma-courses/microclimate.git
+#
+# Commentary:
+#   This workflow separates two crucial but distinct steps in map cleaning:
+#   1. **Noise reduction (smoothing):** Applied via OTB's ClassificationMapRegularization.
+#      - It performs a fast majority-based smoothing using a local moving window (e.g., 3x3).
+#      - This step removes small speckles or misclassified pixels in homogeneous areas.
+#      - It is computationally efficient due to OTB's C++-based implementation.
+#
+#   2. **Semantic filtering:** Performed in R via a contextual reclassification function.
+#      - Specifically targets ecologically unlikely or isolated Douglas-fir pixels.
+#      - These are replaced with surrounding Beech or Oak pixels if they dominate locally.
+#      - Allows flexible, rule-based filtering that OTB cannot natively perform.
+#
+#   ➤ Both steps are technically possible in R using terra::focal(), but:
+#     - Smoothing with `focal()` is **much slower** on large rasters (single-threaded).
+#     - OTB is highly recommended for performance.
+#
+#   ➤ The R-based semantic filtering step is **required** if logical replacement
+#     rules (like Douglas-fir substitution) are needed. This goes beyond statistical smoothing.
 #------------------------------------------------------------------------------
+
 
 # === Libraries ===
 library(terra)           # raster handling
