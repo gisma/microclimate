@@ -1,0 +1,1652 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.42">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Basic Energy Flux Analysis from Energy Balance Station – Envi_Met TLS-tree-climate</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../doc/osm2envi.html" rel="next">
+<link href="../doc/tls_v1_2.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-b53751a350365c71b6c909e95f209ed1.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-0a8fc4914ce287db04f51fd4332c87fe.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-557e0aaec44ac059c2cae0be7f7b926a.min.css" rel="prefetch" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../css/styles.css">
+<meta property="og:title" content="Basic Energy Flux Analysis from Energy Balance Station – Envi_Met TLS-tree-climate">
+<meta property="og:description" content="">
+<meta property="og:image" content="https://gisma-courses.github.io/TLS-tree-climate/doc/fluxes_corrected_files/figure-html/unnamed-chunk-5-1.png">
+<meta property="og:site_name" content="Envi_Met TLS-tree-climate">
+<meta property="og:image:height" content="960">
+<meta property="og:image:width" content="1344">
+<meta name="twitter:title" content="Basic Energy Flux Analysis from Energy Balance Station – Envi_Met TLS-tree-climate">
+<meta name="twitter:description" content="">
+<meta name="twitter:image" content="https://gisma-courses.github.io/TLS-tree-climate/doc/fluxes_corrected_files/figure-html/unnamed-chunk-5-1.png">
+<meta name="twitter:creator" content="@gisma">
+<meta name="twitter:image-height" content="960">
+<meta name="twitter:image-width" content="1344">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+
+<body class="nav-sidebar docked nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a href="../index.html" class="navbar-brand navbar-brand-logo">
+    <img src="../images/logooil.jpg" alt="" class="navbar-logo">
+    </a>
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">Envi_Met TLS-tree-climate</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools tools-end">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <a class="flex-grow-1 no-decor" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+          <h1 class="quarto-secondary-nav-title">Basic Energy Flux Analysis from Energy Balance Station</h1>
+        </a>     
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../doc/evaluation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Evaluation of Atmosphere–Vegetation Interaction Models</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../doc/tls_v1_2.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Using leaf area density (LAD) from TLS data in ENVI-met for 3D plants</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../doc/fluxes_corrected.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Basic Energy Flux Analysis from Energy Balance Station</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../doc/osm2envi.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">QGIS ENVIMET Preprocessor</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../doc/treespecies.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tree Species Classification Cleaning with OTB and Terra</span></a>
+  </div>
+</li>
+        <li class="px-0"><hr class="sidebar-divider hi "></li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a>
+  <ul class="collapse">
+  <li><a href="#surface-energy-balance-theory-and-interpretation" id="toc-surface-energy-balance-theory-and-interpretation" class="nav-link" data-scroll-target="#surface-energy-balance-theory-and-interpretation">Surface Energy Balance: Theory and Interpretation</a></li>
+  <li><a href="#basic-surface-energy-balance-equation" id="toc-basic-surface-energy-balance-equation" class="nav-link" data-scroll-target="#basic-surface-energy-balance-equation">Basic Surface Energy Balance Equation</a></li>
+  </ul></li>
+  <li><a href="#load-libraries-and-data" id="toc-load-libraries-and-data" class="nav-link" data-scroll-target="#load-libraries-and-data">Load Libraries and Data</a></li>
+  <li><a href="#preprocessing" id="toc-preprocessing" class="nav-link" data-scroll-target="#preprocessing">Preprocessing</a></li>
+  <li><a href="#sensible-heat-flux-h-bulk-transfer-method" id="toc-sensible-heat-flux-h-bulk-transfer-method" class="nav-link" data-scroll-target="#sensible-heat-flux-h-bulk-transfer-method">Sensible Heat Flux (H): Bulk Transfer Method</a>
+  <ul class="collapse">
+  <li><a href="#aerodynamic-resistance-r_a" id="toc-aerodynamic-resistance-r_a" class="nav-link" data-scroll-target="#aerodynamic-resistance-r_a">Aerodynamic Resistance <span class="math inline">\(r_a\)</span></a></li>
+  <li><a href="#assumptions-and-limitations" id="toc-assumptions-and-limitations" class="nav-link" data-scroll-target="#assumptions-and-limitations">Assumptions and Limitations</a></li>
+  </ul></li>
+  <li><a href="#latent-heat-flux-le-residual-method" id="toc-latent-heat-flux-le-residual-method" class="nav-link" data-scroll-target="#latent-heat-flux-le-residual-method">Latent Heat Flux <span class="math inline">\(LE\)</span>: Residual Method</a>
+  <ul class="collapse">
+  <li><a href="#residual-energy-balance-equation" id="toc-residual-energy-balance-equation" class="nav-link" data-scroll-target="#residual-energy-balance-equation">Residual Energy Balance Equation</a></li>
+  <li><a href="#assumptions-and-cautions" id="toc-assumptions-and-cautions" class="nav-link" data-scroll-target="#assumptions-and-cautions">Assumptions and Cautions</a></li>
+  </ul></li>
+  <li><a href="#linking-bulk-and-residual-approaches" id="toc-linking-bulk-and-residual-approaches" class="nav-link" data-scroll-target="#linking-bulk-and-residual-approaches">Linking Bulk and Residual Approaches</a>
+  <ul class="collapse">
+  <li><a href="#interpretation" id="toc-interpretation" class="nav-link" data-scroll-target="#interpretation">Interpretation</a></li>
+  </ul></li>
+  <li><a href="#plot-seasonal-comparison-of-energy-fluxes" id="toc-plot-seasonal-comparison-of-energy-fluxes" class="nav-link" data-scroll-target="#plot-seasonal-comparison-of-energy-fluxes">Plot: Seasonal Comparison of Energy Fluxes</a>
+  <ul class="collapse">
+  <li><a href="#energy-fluxes-in-june" id="toc-energy-fluxes-in-june" class="nav-link" data-scroll-target="#energy-fluxes-in-june">Energy Fluxes in June</a></li>
+  <li><a href="#energy-fluxes-in-november" id="toc-energy-fluxes-in-november" class="nav-link" data-scroll-target="#energy-fluxes-in-november">Energy Fluxes in November</a></li>
+  </ul></li>
+  <li><a href="#notes-on-interpretation" id="toc-notes-on-interpretation" class="nav-link" data-scroll-target="#notes-on-interpretation">Notes on Interpretation</a></li>
+  <li><a href="#export-optional" id="toc-export-optional" class="nav-link" data-scroll-target="#export-optional">Export (Optional)</a></li>
+  <li><a href="#complete-code" id="toc-complete-code" class="nav-link" data-scroll-target="#complete-code">Complete Code</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/gisma-courses/TLS-tree-climate/edit/main/doc/fluxes_corrected.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/gisma-courses/TLS-tree-climate/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title d-none d-lg-block">Basic Energy Flux Analysis from Energy Balance Station</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>This tutorial calculates surface energy balance components using micrometeorological observations from an energy balance station. We implement a simplified diagnostic approach based on physical theory and field measurements.</p>
+<section id="surface-energy-balance-theory-and-interpretation" class="level3">
+<h3 class="anchored" data-anchor-id="surface-energy-balance-theory-and-interpretation">Surface Energy Balance: Theory and Interpretation</h3>
+<p>Understanding the surface energy balance is essential for quantifying the partitioning of energy into heating, evaporation, and ground storage. This notebook follows a physically grounded approach to derive the key energy fluxes from field observations.</p>
+</section>
+<section id="basic-surface-energy-balance-equation" class="level3">
+<h3 class="anchored" data-anchor-id="basic-surface-energy-balance-equation">Basic Surface Energy Balance Equation</h3>
+<p>The fundamental balance at the land surface is:</p>
+<p><span class="math display">\[ R_n = H + LE + G + S \]</span></p>
+<p>Where:</p>
+<ul>
+<li><span class="math inline">\(R_n\)</span>: Net radiation <span class="math inline">\(W/m²\)</span> — total energy input from shortwave and longwave radiation<br>
+</li>
+<li><span class="math inline">\(H\)</span>: Sensible heat flux <span class="math inline">\(W/m²\)</span> — convective transfer of heat to the air<br>
+</li>
+<li><span class="math inline">\(LE\)</span>: Latent heat flux <span class="math inline">\(W/m²\)</span> — energy used for evapotranspiration<br>
+</li>
+<li><span class="math inline">\(G\)</span>: Ground heat flux <span class="math inline">\(W/m²\)</span> — conduction of heat into the soil<br>
+</li>
+<li><span class="math inline">\(S\)</span>: Storage term (e.g.&nbsp;canopy heat, biomass, or air column storage; neglected here)</li>
+</ul>
+<p><strong>Assumption:</strong> For half-hourly or hourly timesteps and shallow sensors, we assume <span class="math inline">\(S \approx 0\)</span>$.<br>
+Therefore, we estimate:</p>
+<p><span class="math display">\[LE = R_n - G - H\]</span> ### Data Used in This Analysis</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Variable</th>
+<th>Meaning</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>rad_bil</code></td>
+<td>Approximate net radiation (R_n)</td>
+<td>Measured via 4-component radiometer or surrogate</td>
+</tr>
+<tr class="even">
+<td><code>heatflux_soil</code></td>
+<td>Ground heat flux (G)</td>
+<td>Soil heat flux plate</td>
+</tr>
+<tr class="odd">
+<td><code>Ta_2m</code>, <code>Ta_10m</code></td>
+<td>Air temperature at 2 m and 10 m</td>
+<td>Thermistors</td>
+</tr>
+<tr class="even">
+<td><code>Windspeed_2m</code>, <code>Windspeed_10m</code></td>
+<td>Wind speed at two heights</td>
+<td>Anemometers</td>
+</tr>
+</tbody>
+</table>
+<p>In surface energy balance analysis, the <strong>bulk transfer</strong> and <strong>residual</strong> methods complement each other:</p>
+<ul>
+<li>The <strong>bulk method</strong> estimates the <strong>sensible heat flux (</strong><span class="math inline">\(H\)</span>) using measured temperature and wind gradients.</li>
+<li>The <strong>residual method</strong> then infers the <strong>latent heat flux (</strong><span class="math inline">\(LE\)</span>) by closing the energy balance using the measured net radiation (<span class="math inline">\(R_n\)</span>), soil heat flux (<span class="math inline">\(G\)</span>), and calculated <span class="math inline">\(H\)</span>.</li>
+</ul>
+<p>This creates a simple yet effective hybrid approach: - <strong>Physically based:</strong> <span class="math inline">\(H\)</span> is grounded in turbulence theory. - <strong>Energetically constrained:</strong> <span class="math inline">\(LE\)</span> ensures energy conservation at the surface.</p>
+<p>Together, they enable complete estimation of surface fluxes from standard meteorological data.</p>
+</section>
+</section>
+<section id="load-libraries-and-data" class="level2">
+<h2 class="anchored" data-anchor-id="load-libraries-and-data">Load Libraries and Data</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lubridate)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(units)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>energy <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"../data/energie_bil_wiese.csv"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">datetime =</span> <span class="fu">dmy_hm</span>(datetime))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="preprocessing" class="level2">
+<h2 class="anchored" data-anchor-id="preprocessing">Preprocessing</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>energy <span class="ot">&lt;-</span> energy <span class="sc">%&gt;%</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">Rn =</span> rad_bil,</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">G =</span> heatflux_soil,</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">Ta_2m =</span> Ta_2m,</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">Ta_10m =</span> Ta_10m,</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">WS_2m =</span> Windspeed_2m,</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">WS_10m =</span> Windspeed_10m</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">delta_T =</span> Ta_10m <span class="sc">-</span> Ta_2m,</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">WS_mean =</span> (WS_2m <span class="sc">+</span> WS_10m) <span class="sc">/</span> <span class="dv">2</span>,</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">month_num =</span> <span class="fu">month</span>(datetime),</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">month_label =</span> <span class="fu">case_when</span>(</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>      month_num <span class="sc">==</span> <span class="dv">6</span> <span class="sc">~</span> <span class="st">"June"</span>,</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>      month_num <span class="sc">==</span> <span class="dv">11</span> <span class="sc">~</span> <span class="st">"November"</span>,</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> <span class="fu">as.character</span>(<span class="fu">month</span>(datetime, <span class="at">label =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="sensible-heat-flux-h-bulk-transfer-method" class="level2">
+<h2 class="anchored" data-anchor-id="sensible-heat-flux-h-bulk-transfer-method">Sensible Heat Flux (H): Bulk Transfer Method</h2>
+<p>Sensible heat flux (H) is the rate at which thermal energy is transferred from the Earth’s surface to the atmosphere due to a temperature difference. It is a critical term in the surface energy balance and is especially important in meteorology, hydrology, and micrometeorology.</p>
+<p>It describes how warm the surface is compared to the air above it — and how turbulent air motion carries that heat away. The bulk transfer formulation for (H) assumes a logarithmic wind profile and neutral atmospheric conditions short explanation adding to the scalar laws.</p>
+<p><span class="math display">\[ H = \rho c_p \cdot \frac{\Delta T}{r_a} \]</span></p>
+<p>Where:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Symbol</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(H\)</span></td>
+<td>Sensible heat flux <span class="math inline">\(W/m²\)</span></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(rho\)</span></td>
+<td>Air density <span class="math inline">\(kg/m³\)</span> (typically ≈ 1.225 at sea level)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(c_p\)</span></td>
+<td>Specific heat of air at constant pressure <span class="math inline">\(J/kg/K\)</span> <span class="math inline">\(≈ 1005 J/kg/K\)</span></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(Delta T\)</span></td>
+<td>Temperature difference between two heights: <span class="math inline">\(T\_{z2} - T\_{z1}\)</span> <span class="math inline">\(K\)</span></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(r_a\)</span></td>
+<td>Aerodynamic resistance to heat transfer <span class="math inline">\(s/m\)</span></td>
+</tr>
+</tbody>
+</table>
+<section id="aerodynamic-resistance-r_a" class="level3">
+<h3 class="anchored" data-anchor-id="aerodynamic-resistance-r_a">Aerodynamic Resistance <span class="math inline">\(r_a\)</span></h3>
+<p>Aerodynamic resistance quantifies how turbulent air mixes heat. It depends on wind speed, measurement height, and surface roughness.</p>
+<p>For a flat and open surface, and assuming a neutral atmosphere:</p>
+<p><span class="math display">\[r_a = \frac{\ln(z_2/z_1)}{k \cdot u_{mean}}\]</span></p>
+<p>Where:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 18%">
+<col style="width: 81%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Symbol</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(z_1\)</span></td>
+<td>Lower measurement height (e.g.&nbsp;2 m)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(z_2\)</span></td>
+<td>Upper measurement height (e.g.&nbsp;10 m)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(k\)</span></td>
+<td>von Kármán constant (≈ 0.41)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(u\_{mean}\)</span></td>
+<td>Mean horizontal wind speed between <span class="math inline">\(z_1\)</span> and <span class="math inline">\(z_2\)</span> <span class="math inline">\(m/s\)</span></td>
+</tr>
+</tbody>
+</table>
+<blockquote class="blockquote">
+<p>This formula assumes: - horizontally homogeneous surface, - fully turbulent flow, - negligible atmospheric stability effects (i.e.&nbsp;neutral conditions).</p>
+</blockquote>
+<div class="callout callout-style-simple callout-note no-icon callout-titled" title="Wind profile, buoyancy effects and turbulent scalar transport">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Wind profile, buoyancy effects and turbulent scalar transport
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-1" class="callout-1-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<section id="note-on-logarithmic-wind-profile" class="level3">
+<h3 class="anchored" data-anchor-id="note-on-logarithmic-wind-profile">Note on logarithmic wind profile</h3>
+<p>A logarithmic wind profile means that wind speed increases with height according to:</p>
+<p><span class="math display">\[
+  u(z) = \frac{u_*}{k} \ln\left(\frac{z}{z_0}\right)
+\]</span></p>
+<p>where <span class="math inline">\(u_*\)</span> is the friction velocity, <span class="math inline">\(k\)</span> the von Kármán constant, and <span class="math inline">\(z_0\)</span> the roughness length. This profile arises from surface-layer theory under turbulent, steady conditions.</p>
+</section>
+<section id="note-on-diagnosing-atmospheric-stability" class="level3">
+<h3 class="anchored" data-anchor-id="note-on-diagnosing-atmospheric-stability">Note on Diagnosing Atmospheric Stability</h3>
+<p>To determine whether <strong>neutral atmospheric stratification</strong> applies, we estimate the <strong>Obukhov length</strong> <span class="math inline">\(L\)</span>, a key parameter from Monin–Obukhov similarity theory:</p>
+<p><span class="math display">\[
+L = -\frac{\rho \cdot c_p \cdot T \cdot u_*^3}{k \cdot g \cdot H}
+\]</span></p>
+<p>where:</p>
+<ul>
+<li><span class="math inline">\(\rho = 1.225\,\text{kg/m}^3\)</span>: air density<br>
+</li>
+<li><span class="math inline">\(c_p = 1005\,\text{J/kg/K}\)</span>: specific heat of air<br>
+</li>
+<li><span class="math inline">\(T\)</span>: mean air temperature (in K)<br>
+</li>
+<li><span class="math inline">\(u_*\)</span>: friction velocity (approximated)<br>
+</li>
+<li><span class="math inline">\(k = 0.41\)</span>: von Kármán constant<br>
+</li>
+<li><span class="math inline">\(g = 9.81\,\text{m/s}^2\)</span>: gravitational acceleration<br>
+</li>
+<li><span class="math inline">\(H\)</span>: sensible heat flux (W/m²)</li>
+</ul>
+<p>We estimate <span class="math inline">\(u_*\)</span> from wind speed using the log-profile equation:</p>
+<p><span class="math display">\[
+u_* = \frac{k \cdot \bar{u}}{\ln(z_2 / z_1)}
+\]</span></p>
+<p>and compute:</p>
+<ul>
+<li><span class="math inline">\(T = (T_{2m} + T_{10m})/2 + 273.15\)</span></li>
+<li><span class="math inline">\(\bar{u} = (u_{2m} + u_{10m}) / 2\)</span></li>
+</ul>
+<p>The <strong>dimensionless height</strong> <span class="math inline">\(z/L\)</span> is then used to classify stability:</p>
+<ul>
+<li><span class="math inline">\(|z/L| &lt; 0.1\)</span> → <strong>Neutral</strong></li>
+<li><span class="math inline">\(z/L &gt; 0.1\)</span> → <strong>Stable</strong></li>
+<li><span class="math inline">\(z/L &lt; -0.1\)</span> → <strong>Unstable</strong></li>
+</ul>
+<p>This allows us to screen the dataset and verify whether <strong>bulk formulations assuming neutral stratification</strong> are valid at given time steps.</p>
+</section>
+<section id="note-on-scalar-transport-laws" class="level3">
+<h3 class="anchored" data-anchor-id="note-on-scalar-transport-laws">Note on Scalar Transport Laws</h3>
+<p>Turbulent scalar transport refers to the movement of quantities like <strong>temperature</strong> or <strong>humidity</strong> due to turbulent eddies in the atmosphere. These fluxes follow a gradient–flux relationship:</p>
+<p><span class="math display">\[
+F_\phi = -K_\phi \cdot \frac{\partial \phi}{\partial z}
+\]</span></p>
+<p>where:</p>
+<ul>
+<li><span class="math inline">\(F_\phi\)</span>: vertical flux of scalar <span class="math inline">\(\phi\)</span> (e.g.&nbsp;<span class="math inline">\(T\)</span>, <span class="math inline">\(q\)</span>),</li>
+<li><span class="math inline">\(K_\phi\)</span>: eddy diffusivity [m²/s],</li>
+<li><span class="math inline">\(\frac{\partial \phi}{\partial z}\)</span>: vertical gradient of the scalar.</li>
+</ul>
+<p>In field applications, this is simplified into <strong>bulk transfer formulas</strong> like:</p>
+<p><span class="math display">\[
+H = \rho \cdot c_p \cdot \frac{\Delta T}{r_a}
+\]</span></p>
+<p>which relate scalar differences to vertical fluxes via aerodynamic resistance <span class="math inline">\(r_a\)</span>.</p>
+</section>
+</div>
+</div>
+</div>
+</section>
+<section id="assumptions-and-limitations" class="level3">
+<h3 class="anchored" data-anchor-id="assumptions-and-limitations">Assumptions and Limitations</h3>
+<div class="callout callout-style-simple callout-note no-icon">
+<div class="callout-body d-flex">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-body-container">
+<pre><code>-   Assumes neutral stability — ignores buoyancy effects (unstable/stable conditions).
+
+-   Requires accurate wind and temperature measurements.
+
+-   Works best over homogeneous, flat terrain.
+
+-   May underestimate or overestimate fluxes under low wind or very moist/dry conditions.</code></pre>
+</div>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Constants</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>rho_air <span class="ot">&lt;-</span> <span class="fu">set_units</span>(<span class="fl">1.225</span>, <span class="st">"kg/m^3"</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>cp_air <span class="ot">&lt;-</span> <span class="fu">set_units</span>(<span class="dv">1005</span>, <span class="st">"J/kg/K"</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>z1 <span class="ot">&lt;-</span> <span class="dv">2</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>z2 <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>k <span class="ot">&lt;-</span> <span class="fl">0.41</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>energy <span class="ot">&lt;-</span> energy <span class="sc">%&gt;%</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">ra =</span> <span class="fu">log</span>(z2 <span class="sc">/</span> z1) <span class="sc">/</span> (k <span class="sc">*</span> WS_mean),</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">H =</span> <span class="fu">drop_units</span>(rho_air <span class="sc">*</span> cp_air <span class="sc">*</span> delta_T <span class="sc">/</span> ra)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+</section>
+<section id="latent-heat-flux-le-residual-method" class="level2">
+<h2 class="anchored" data-anchor-id="latent-heat-flux-le-residual-method">Latent Heat Flux <span class="math inline">\(LE\)</span>: Residual Method</h2>
+<p>The <strong>latent heat flux</strong> <span class="math inline">\(LE\)</span> quantifies the energy used for <strong>evapotranspiration</strong> — the combined loss of water to the atmosphere by:</p>
+<ul>
+<li><strong>evaporation</strong> from soil and wet surfaces,</li>
+<li><strong>transpiration</strong> through stomata in plants, and</li>
+<li><strong>evaporation</strong> of intercepted rainfall from canopy surfaces.</li>
+</ul>
+<section id="residual-energy-balance-equation" class="level3">
+<h3 class="anchored" data-anchor-id="residual-energy-balance-equation">Residual Energy Balance Equation</h3>
+<p>When direct measurement is unavailable, we estimate <span class="math inline">\(LE\)</span> as the <strong>residual</strong> of the surface energy balance by subtracting all the known energy components from the total incoming energy:</p>
+<p><span class="math display">\[
+LE = R_n - G - H
+\]</span></p>
+<p>Where:</p>
+<ul>
+<li><span class="math inline">\(LE\)</span>: latent heat flux [W/m²]</li>
+<li><span class="math inline">\(R_n\)</span>: net radiation [W/m²] (incoming − outgoing radiation)</li>
+<li><span class="math inline">\(G\)</span>: ground heat flux [W/m²] (into or out of the soil)</li>
+<li><span class="math inline">\(H\)</span>: sensible heat flux [W/m²] (convective heat to the air)</li>
+</ul>
+</section>
+<section id="assumptions-and-cautions" class="level3">
+<h3 class="anchored" data-anchor-id="assumptions-and-cautions">Assumptions and Cautions</h3>
+<ul>
+<li>Assumes <strong>energy balance closure</strong> (no significant storage (S)).</li>
+<li>Errors in <span class="math inline">\(R_n\)</span>, <span class="math inline">\(G\)</span>, or <span class="math inline">\(H\)</span> directly affect <span class="math inline">\(LE\)</span>.</li>
+<li>Nighttime or low-flux periods often show <strong>non-physical negative (LE)</strong>.</li>
+</ul>
+</section>
+</section>
+<section id="linking-bulk-and-residual-approaches" class="level2">
+<h2 class="anchored" data-anchor-id="linking-bulk-and-residual-approaches">Linking Bulk and Residual Approaches</h2>
+<p>To estimate the surface energy balance components, we combine two complementary methods:</p>
+<ol type="1">
+<li><strong>Sensible heat flux</strong> <span class="math inline">\(H\)</span> is derived using the <strong>bulk transfer approach</strong>, which relies on measured temperature and wind speed differences at two heights.</li>
+<li><strong>Latent heat flux</strong> <span class="math inline">\(LE\)</span> is then calculated as the <strong>residual</strong> energy — the portion of net radiation not used for heating the air (<span class="math inline">\(H\)</span>) or the soil (<span class="math inline">\(G\)</span>).</li>
+</ol>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th><strong>Component</strong></th>
+<th><strong>Bulk Transfer Method</strong></th>
+<th><strong>Residual Method</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>What it estimates</strong></td>
+<td>Sensible heat flux (<span class="math inline">\(H\)</span>)</td>
+<td>Latent heat flux (<span class="math inline">\(LE\)</span>)</td>
+</tr>
+<tr class="even">
+<td><strong>Required inputs</strong></td>
+<td><span class="math inline">\(\Delta T\)</span> (temp. difference), <span class="math inline">\(\bar{u}\)</span> (mean wind speed)</td>
+<td><span class="math inline">\(R_n\)</span> (net radiation), <span class="math inline">\(G\)</span> (ground heat), and <span class="math inline">\(H\)</span></td>
+</tr>
+<tr class="odd">
+<td><strong>Physical principle</strong></td>
+<td>Turbulent heat transport via scalar gradient</td>
+<td>Energy conservation (surface energy balance)</td>
+</tr>
+<tr class="even">
+<td><strong>Formula used</strong></td>
+<td><span class="math inline">\(H = \rho \cdot c_p \cdot \dfrac{\Delta T}{r_a}\)</span></td>
+<td><span class="math inline">\(LE = R_n - G - H\)</span></td>
+</tr>
+<tr class="odd">
+<td><strong>Key assumption</strong></td>
+<td>Logarithmic wind profile, neutral stratification</td>
+<td>Negligible storage term <span class="math inline">\(S \approx 0\)</span></td>
+</tr>
+<tr class="even">
+<td><strong>Output in your case</strong></td>
+<td><span class="math inline">\(H = 251\,\text{W/m}^2\)</span> (based on realistic inputs)</td>
+<td><span class="math inline">\(LE = 289\,\text{W/m}^2\)</span> (by residual)</td>
+</tr>
+</tbody>
+</table>
+<section id="step-1-bulk-estimation-of-sensible-heat-flux" class="level4">
+<h4 class="anchored" data-anchor-id="step-1-bulk-estimation-of-sensible-heat-flux">Step 1: Bulk Estimation of Sensible Heat Flux</h4>
+<p>We use the following <strong>measured or typical values</strong> from a grassland site at midday:</p>
+<ul>
+<li><span class="math inline">\(T_{10m} = 19.0^\circ C\)</span></li>
+<li><span class="math inline">\(T_{2m} = 18.5^\circ C\)</span> → <span class="math inline">\(\Delta T = 0.5\,\text{K}\)</span></li>
+<li>Wind speeds: <span class="math inline">\(u_{2m} = 1.2\,\text{m/s}\)</span>, <span class="math inline">\(u_{10m} = 2.0\,\text{m/s}\)</span> → <span class="math inline">\(\bar{u} = 1.6\,\text{m/s}\)</span></li>
+<li>Constants:
+<ul>
+<li><span class="math inline">\(\rho = 1.225\,\text{kg/m}^3\)</span> (air density)</li>
+<li><span class="math inline">\(c_p = 1005\,\text{J/kg/K}\)</span> (specific heat of air)</li>
+<li><span class="math inline">\(k = 0.41\)</span> (von Kármán constant)</li>
+<li><span class="math inline">\(z_1 = 2\,\text{m}\)</span>, <span class="math inline">\(z_2 = 10\,\text{m}\)</span></li>
+</ul></li>
+</ul>
+<p><strong>Aerodynamic resistance</strong> is estimated using the logarithmic wind profile assumption:</p>
+<p><span class="math display">\[
+r_a = \frac{\ln(z_2 / z_1)}{k \cdot \bar{u}} = \frac{\ln(10 / 2)}{0.41 \cdot 1.6} \approx 2.453\,\text{s/m}
+\]</span></p>
+<p>Now we insert this into the <strong>bulk formula</strong> for <span class="math inline">\(H\)</span>:</p>
+<p><span class="math display">\[
+H = \rho \cdot c_p \cdot \frac{\Delta T}{r_a} = 1.225 \cdot 1005 \cdot \frac{0.5}{2.453} \approx 251\,\text{W/m}^2
+\]</span></p>
+</section>
+<section id="step-2-residual-estimation-of-latent-heat-flux" class="level4">
+<h4 class="anchored" data-anchor-id="step-2-residual-estimation-of-latent-heat-flux">Step 2: Residual Estimation of Latent Heat Flux</h4>
+<p>We now assume the following <strong>additional energy balance terms</strong> are available:</p>
+<ul>
+<li><span class="math inline">\(R_n = 620\,\text{W/m}^2\)</span>: net radiation (measured via radiometer)</li>
+<li><span class="math inline">\(G = 80\,\text{W/m}^2\)</span>: ground heat flux (from soil heat flux plates)</li>
+</ul>
+<p>We calculate <strong>latent heat flux</strong> <span class="math inline">\(LE\)</span> as the <strong>residual</strong>:</p>
+<p><span class="math display">\[
+LE = R_n - G - H = 620 - 80 - 251 = 289\,\text{W/m}^2
+\]</span></p>
+<p>This gives the amount of energy used for <strong>evaporation and transpiration</strong>, inferred from energy conservation.</p>
+</section>
+<section id="interpretation" class="level3">
+<h3 class="anchored" data-anchor-id="interpretation">Interpretation</h3>
+<p>By first estimating <span class="math inline">\(H\)</span> via physical gradients (bulk approach), and then applying the residual method, we close the energy balance without needing direct <span class="math inline">\(LE\)</span> measurements. This is a standard practice in micrometeorology when eddy covariance data are not available.</p>
+<p>Using the residual method:</p>
+<p><span class="math inline">\(LE = R_n - G - H\)</span></p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>energy <span class="ot">&lt;-</span> energy <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">LE =</span> Rn <span class="sc">-</span> G <span class="sc">-</span> H)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+</section>
+<section id="plot-seasonal-comparison-of-energy-fluxes" class="level2">
+<h2 class="anchored" data-anchor-id="plot-seasonal-comparison-of-energy-fluxes">Plot: Seasonal Comparison of Energy Fluxes</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>energy_long <span class="ot">&lt;-</span> energy <span class="sc">%&gt;%</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(datetime, month_label, Rn, G, H, LE) <span class="sc">%&gt;%</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(Rn, G, H, LE), <span class="at">names_to =</span> <span class="st">"flux"</span>, <span class="at">values_to =</span> <span class="st">"value"</span>)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>plot_fluxes <span class="ot">&lt;-</span> <span class="cf">function</span>(df, title) {</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(df, <span class="fu">aes</span>(<span class="at">x =</span> datetime, <span class="at">y =</span> value, <span class="at">color =</span> flux)) <span class="sc">+</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_line</span>() <span class="sc">+</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> title, <span class="at">x =</span> <span class="st">"Time"</span>, <span class="at">y =</span> <span class="st">"Flux (W/m²)"</span>) <span class="sc">+</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_minimal</span>()</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_fluxes</span>(<span class="fu">filter</span>(energy_long, month_label <span class="sc">==</span> <span class="st">"June"</span>), <span class="st">"Energy Fluxes in June"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="fluxes_corrected_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<section id="energy-fluxes-in-june" class="level3">
+<h3 class="anchored" data-anchor-id="energy-fluxes-in-june">Energy Fluxes in June</h3>
+<ul>
+<li>High <strong>latent heat flux (LE)</strong> dominates, indicating active <strong>evapotranspiration</strong>.</li>
+<li><strong>Sensible heat (H)</strong> remains moderate, as much energy is used to vaporize water.</li>
+<li><strong>Ground heat flux (G)</strong> is positive in early hours, storing heat in the soil.</li>
+</ul>
+<p>This matches expectations for <strong>early summer (June)</strong>: longer days, moist soils, and active vegetation cover.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_fluxes</span>(<span class="fu">filter</span>(energy_long, month_label <span class="sc">==</span> <span class="st">"November"</span>), <span class="st">"Energy Fluxes in November"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="fluxes_corrected_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="energy-fluxes-in-november" class="level3">
+<h3 class="anchored" data-anchor-id="energy-fluxes-in-november">Energy Fluxes in November</h3>
+<ul>
+<li><strong>Latent heat (LE)</strong> is minimal — vegetation is inactive and evapotranspiration drops.</li>
+<li><strong>Sensible heat (H)</strong> becomes dominant — energy heats the air due to lack of biological water flux.</li>
+<li><strong>Ground heat flux (G)</strong> may show inversion (soil losing heat), particularly in the evening.</li>
+</ul>
+<p>This pattern reflects the <strong>dormant season</strong>, with minimal biological activity and colder atmospheric conditions.</p>
+<p><strong>Legend for Energy Flux Components</strong></p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Symbol</th>
+<th>Description</th>
+<th>Sign Convention</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>(R_n)</td>
+<td>Net radiation</td>
+<td>Positive downward</td>
+</tr>
+<tr class="even">
+<td>(H)</td>
+<td>Sensible heat flux</td>
+<td>Positive upward (to air)</td>
+</tr>
+<tr class="odd">
+<td>(LE)</td>
+<td>Latent heat flux</td>
+<td>Positive upward (evaporation)</td>
+</tr>
+<tr class="even">
+<td>(G)</td>
+<td>Ground heat flux</td>
+<td>Positive downward (into soil)</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="notes-on-interpretation" class="level2">
+<h2 class="anchored" data-anchor-id="notes-on-interpretation">Notes on Interpretation</h2>
+<ul>
+<li>Fluxes are sensitive to <strong>soil moisture</strong>, <strong>vegetation</strong>, <strong>radiation</strong>, and <strong>wind</strong>.</li>
+<li>Deviations in (R_n - G - H) often indicate <strong>instrument imbalance</strong>, <strong>storage terms</strong>, or <strong>closure errors</strong>.</li>
+<li>The <strong>residual approach</strong> to compute (LE) assumes high accuracy of the measured and modeled terms.</li>
+</ul>
+<div class="callout callout-style-simple callout-note no-icon callout-titled" title="Convert to Evapotranspiration (mm/day)">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Convert to Evapotranspiration (mm/day)
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-2" class="callout-2-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>We calculate <strong>latent heat flux</strong> <span class="math inline">\(LE\)</span> as the <strong>residual</strong>:</p>
+<p><span class="math display">\[
+LE = R_n - G - H = 620 - 80 - 251 = 289\,\text{W/m}^2
+\]</span></p>
+<p>Using latent heat of vaporization <span class="math inline">\(lambda = 2.45 \cdot 10^6\,\text{J/kg}\)</span>:</p>
+<p><span class="math display">\[
+ET = \frac{LE}{\lambda} \cdot \frac{86400}{1000}
+\]</span></p>
+<p>Insert values:</p>
+<p><span class="math display">\[
+ET = \frac{330}{2.45 \cdot 10^6} \cdot 86.4 \approx 11.64\,\text{mm/day}
+\]</span></p>
+<p>On this day, the land surface lost ~<strong>11.6 mm</strong> of water via evapotranspiration — a <strong>very high</strong> rate, consistent with moist soil, strong radiation, and active vegetation.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Berechne ET</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>lambda <span class="ot">&lt;-</span> <span class="fl">2.45e6</span>  <span class="co"># J/kg</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>energy <span class="ot">&lt;-</span> energy <span class="sc">%&gt;%</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">ET_mm_day =</span> (LE <span class="sc">/</span> lambda) <span class="sc">*</span> <span class="dv">86400</span>,</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">month_label =</span> <span class="fu">month</span>(datetime, <span class="at">label =</span> <span class="cn">TRUE</span>, <span class="at">abbr =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Aggregiere pro Monat</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>monthly_et <span class="ot">&lt;-</span> energy <span class="sc">%&gt;%</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(ET_mm_day)) <span class="sc">%&gt;%</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(month_label) <span class="sc">%&gt;%</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_ET =</span> <span class="fu">mean</span>(ET_mm_day, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(monthly_et, <span class="fu">aes</span>(<span class="at">x =</span> month_label, <span class="at">y =</span> mean_ET, <span class="at">fill =</span> month_label)) <span class="sc">+</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_col</span>(<span class="at">show.legend =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Mean Daily Evapotranspiration (ET) from Residual Method"</span>,</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Month"</span>,</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Evapotranspiration (mm/day)"</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"June"</span> <span class="ot">=</span> <span class="st">"tomato"</span>, <span class="st">"November"</span> <span class="ot">=</span> <span class="st">"turquoise3"</span>)) <span class="sc">+</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="fluxes_corrected_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="export-optional" class="level2">
+<h2 class="anchored" data-anchor-id="export-optional">Export (Optional)</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># write_csv(energy, "../data/processed_energy_fluxes.csv")</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="complete-code" class="level2">
+<h2 class="anchored" data-anchor-id="complete-code">Complete Code</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Setup: source external script</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="st">"../doc/fluxes_corrected.R"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load required libraries</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)   <span class="co"># Core tidyverse packages (readr, dplyr, ggplot2, etc.)</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lubridate)   <span class="co"># For working with dates and times</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(units)       <span class="co"># For physical units (e.g., J/kg/K)</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Load energy flux data and parse datetime column</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>energy <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"../data/energie_bil_wiese.csv"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">datetime =</span> <span class="fu">dmy_hm</span>(datetime))  <span class="co"># Convert 'datetime' column from character to POSIXct</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="do">## ----------------------------------------------------------------------</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Rename and derive key variables from measurements</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>energy <span class="ot">&lt;-</span> energy <span class="sc">%&gt;%</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">Rn =</span> rad_bil,            <span class="co"># Net radiation</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">G =</span> heatflux_soil,       <span class="co"># Soil heat flux</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">Ta_2m =</span> Ta_2m,            <span class="co"># Air temperature at 2 m</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">Ta_10m =</span> Ta_10m,          <span class="co"># Air temperature at 10 m</span></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">WS_2m =</span> Windspeed_2m,     <span class="co"># Wind speed at 2 m</span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">WS_10m =</span> Windspeed_10m    <span class="co"># Wind speed at 10 m</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">delta_T =</span> Ta_10m <span class="sc">-</span> Ta_2m,                          <span class="co"># Vertical temperature gradient</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">WS_mean =</span> (WS_2m <span class="sc">+</span> WS_10m) <span class="sc">/</span> <span class="dv">2</span>,                    <span class="co"># Mean wind speed</span></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">month_num =</span> <span class="fu">month</span>(datetime),                      <span class="co"># Numeric month for logic</span></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">month_label =</span> <span class="fu">case_when</span>(                          <span class="co"># Label month manually for plot filtering</span></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>      month_num <span class="sc">==</span> <span class="dv">6</span> <span class="sc">~</span> <span class="st">"June"</span>,</span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>      month_num <span class="sc">==</span> <span class="dv">11</span> <span class="sc">~</span> <span class="st">"November"</span>,</span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> <span class="fu">as.character</span>(<span class="fu">month</span>(datetime, <span class="at">label =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a><span class="do">## ----------------------------------------------------------------------</span></span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a><span class="co"># Define physical constants for sensible heat flux calculation</span></span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a>rho_air <span class="ot">&lt;-</span> <span class="fu">set_units</span>(<span class="fl">1.225</span>, <span class="st">"kg/m^3"</span>)   <span class="co"># Air density</span></span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a>cp_air <span class="ot">&lt;-</span> <span class="fu">set_units</span>(<span class="dv">1005</span>, <span class="st">"J/kg/K"</span>)     <span class="co"># Specific heat capacity of air</span></span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a>z1 <span class="ot">&lt;-</span> <span class="dv">2</span>                                 <span class="co"># Lower measurement height (2 m)</span></span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a>z2 <span class="ot">&lt;-</span> <span class="dv">10</span>                                <span class="co"># Upper measurement height (10 m)</span></span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a>k <span class="ot">&lt;-</span> <span class="fl">0.41</span>                               <span class="co"># von Kármán constant</span></span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-42"><a href="#cb11-42" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate aerodynamic resistance and sensible heat flux (H)</span></span>
+<span id="cb11-43"><a href="#cb11-43" aria-hidden="true" tabindex="-1"></a>energy <span class="ot">&lt;-</span> energy <span class="sc">%&gt;%</span></span>
+<span id="cb11-44"><a href="#cb11-44" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb11-45"><a href="#cb11-45" aria-hidden="true" tabindex="-1"></a>    <span class="at">ra =</span> <span class="fu">log</span>(z2 <span class="sc">/</span> z1) <span class="sc">/</span> (k <span class="sc">*</span> WS_mean),                     <span class="co"># Aerodynamic resistance [s/m]</span></span>
+<span id="cb11-46"><a href="#cb11-46" aria-hidden="true" tabindex="-1"></a>    <span class="at">H =</span> <span class="fu">drop_units</span>(rho_air <span class="sc">*</span> cp_air <span class="sc">*</span> delta_T <span class="sc">/</span> ra)       <span class="co"># Sensible heat flux [W/m²]</span></span>
+<span id="cb11-47"><a href="#cb11-47" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb11-48"><a href="#cb11-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-49"><a href="#cb11-49" aria-hidden="true" tabindex="-1"></a><span class="do">## ----------------------------------------------------------------------</span></span>
+<span id="cb11-50"><a href="#cb11-50" aria-hidden="true" tabindex="-1"></a><span class="co"># Estimate latent heat flux (LE) using residual method: LE = Rn - G - H</span></span>
+<span id="cb11-51"><a href="#cb11-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-52"><a href="#cb11-52" aria-hidden="true" tabindex="-1"></a>energy <span class="ot">&lt;-</span> energy <span class="sc">%&gt;%</span></span>
+<span id="cb11-53"><a href="#cb11-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">LE =</span> Rn <span class="sc">-</span> G <span class="sc">-</span> H)</span>
+<span id="cb11-54"><a href="#cb11-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-55"><a href="#cb11-55" aria-hidden="true" tabindex="-1"></a><span class="do">## ----------------------------------------------------------------------</span></span>
+<span id="cb11-56"><a href="#cb11-56" aria-hidden="true" tabindex="-1"></a><span class="co"># Reshape data for plotting: long format for energy balance components</span></span>
+<span id="cb11-57"><a href="#cb11-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-58"><a href="#cb11-58" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb11-59"><a href="#cb11-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-60"><a href="#cb11-60" aria-hidden="true" tabindex="-1"></a>energy_long <span class="ot">&lt;-</span> energy <span class="sc">%&gt;%</span></span>
+<span id="cb11-61"><a href="#cb11-61" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(datetime, month_label, Rn, G, H, LE) <span class="sc">%&gt;%</span></span>
+<span id="cb11-62"><a href="#cb11-62" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(Rn, G, H, LE), <span class="at">names_to =</span> <span class="st">"flux"</span>, <span class="at">values_to =</span> <span class="st">"value"</span>)</span>
+<span id="cb11-63"><a href="#cb11-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-64"><a href="#cb11-64" aria-hidden="true" tabindex="-1"></a><span class="co"># Define plotting function for energy fluxes</span></span>
+<span id="cb11-65"><a href="#cb11-65" aria-hidden="true" tabindex="-1"></a>plot_fluxes <span class="ot">&lt;-</span> <span class="cf">function</span>(df, title) {</span>
+<span id="cb11-66"><a href="#cb11-66" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(df, <span class="fu">aes</span>(<span class="at">x =</span> datetime, <span class="at">y =</span> value, <span class="at">color =</span> flux)) <span class="sc">+</span></span>
+<span id="cb11-67"><a href="#cb11-67" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_line</span>() <span class="sc">+</span></span>
+<span id="cb11-68"><a href="#cb11-68" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> title, <span class="at">x =</span> <span class="st">"Time"</span>, <span class="at">y =</span> <span class="st">"Flux (W/m²)"</span>) <span class="sc">+</span></span>
+<span id="cb11-69"><a href="#cb11-69" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_minimal</span>()</span>
+<span id="cb11-70"><a href="#cb11-70" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb11-71"><a href="#cb11-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-72"><a href="#cb11-72" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot fluxes for June</span></span>
+<span id="cb11-73"><a href="#cb11-73" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_fluxes</span>(<span class="fu">filter</span>(energy_long, month_label <span class="sc">==</span> <span class="st">"June"</span>), <span class="st">"Energy Fluxes in June"</span>)</span>
+<span id="cb11-74"><a href="#cb11-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-75"><a href="#cb11-75" aria-hidden="true" tabindex="-1"></a><span class="do">## ----------------------------------------------------------------------</span></span>
+<span id="cb11-76"><a href="#cb11-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-77"><a href="#cb11-77" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot fluxes for November</span></span>
+<span id="cb11-78"><a href="#cb11-78" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_fluxes</span>(<span class="fu">filter</span>(energy_long, month_label <span class="sc">==</span> <span class="st">"November"</span>), <span class="st">"Energy Fluxes in November"</span>)</span>
+<span id="cb11-79"><a href="#cb11-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-80"><a href="#cb11-80" aria-hidden="true" tabindex="-1"></a><span class="do">## ----------------------------------------------------------------------</span></span>
+<span id="cb11-81"><a href="#cb11-81" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute evapotranspiration (ET) from latent heat flux (LE)</span></span>
+<span id="cb11-82"><a href="#cb11-82" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-83"><a href="#cb11-83" aria-hidden="true" tabindex="-1"></a>lambda <span class="ot">&lt;-</span> <span class="fl">2.45e6</span>  <span class="co"># Latent heat of vaporization [J/kg]</span></span>
+<span id="cb11-84"><a href="#cb11-84" aria-hidden="true" tabindex="-1"></a>energy <span class="ot">&lt;-</span> energy <span class="sc">%&gt;%</span></span>
+<span id="cb11-85"><a href="#cb11-85" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb11-86"><a href="#cb11-86" aria-hidden="true" tabindex="-1"></a>    <span class="at">ET_mm_day =</span> (LE <span class="sc">/</span> lambda) <span class="sc">*</span> <span class="dv">86400</span>,                            <span class="co"># Convert LE to mm/day</span></span>
+<span id="cb11-87"><a href="#cb11-87" aria-hidden="true" tabindex="-1"></a>    <span class="at">month_label =</span> <span class="fu">month</span>(datetime, <span class="at">label =</span> <span class="cn">TRUE</span>, <span class="at">abbr =</span> <span class="cn">FALSE</span>)     <span class="co"># Full month name</span></span>
+<span id="cb11-88"><a href="#cb11-88" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb11-89"><a href="#cb11-89" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-90"><a href="#cb11-90" aria-hidden="true" tabindex="-1"></a><span class="co"># Monthly average ET</span></span>
+<span id="cb11-91"><a href="#cb11-91" aria-hidden="true" tabindex="-1"></a>monthly_et <span class="ot">&lt;-</span> energy <span class="sc">%&gt;%</span></span>
+<span id="cb11-92"><a href="#cb11-92" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(ET_mm_day)) <span class="sc">%&gt;%</span></span>
+<span id="cb11-93"><a href="#cb11-93" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(month_label) <span class="sc">%&gt;%</span></span>
+<span id="cb11-94"><a href="#cb11-94" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb11-95"><a href="#cb11-95" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_ET =</span> <span class="fu">mean</span>(ET_mm_day, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb11-96"><a href="#cb11-96" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb11-97"><a href="#cb11-97" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb11-98"><a href="#cb11-98" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-99"><a href="#cb11-99" aria-hidden="true" tabindex="-1"></a><span class="co"># Bar plot: mean ET by month</span></span>
+<span id="cb11-100"><a href="#cb11-100" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(monthly_et, <span class="fu">aes</span>(<span class="at">x =</span> month_label, <span class="at">y =</span> mean_ET, <span class="at">fill =</span> month_label)) <span class="sc">+</span></span>
+<span id="cb11-101"><a href="#cb11-101" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_col</span>(<span class="at">show.legend =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
+<span id="cb11-102"><a href="#cb11-102" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb11-103"><a href="#cb11-103" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Mean Daily Evapotranspiration (ET) from Residual Method"</span>,</span>
+<span id="cb11-104"><a href="#cb11-104" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Month"</span>,</span>
+<span id="cb11-105"><a href="#cb11-105" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Evapotranspiration (mm/day)"</span></span>
+<span id="cb11-106"><a href="#cb11-106" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb11-107"><a href="#cb11-107" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"June"</span> <span class="ot">=</span> <span class="st">"tomato"</span>, <span class="st">"November"</span> <span class="ot">=</span> <span class="st">"turquoise3"</span>)) <span class="sc">+</span></span>
+<span id="cb11-108"><a href="#cb11-108" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
+<span id="cb11-109"><a href="#cb11-109" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-110"><a href="#cb11-110" aria-hidden="true" tabindex="-1"></a><span class="do">## ----------------------------------------------------------------------</span></span>
+<span id="cb11-111"><a href="#cb11-111" aria-hidden="true" tabindex="-1"></a><span class="co"># Save processed data to CSV</span></span>
+<span id="cb11-112"><a href="#cb11-112" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(energy, <span class="st">"../data/processed_energy_fluxes.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+<ul>
+<li>Foken, T. (2008). <em>Micrometeorology</em>. Springer.<br>
+</li>
+<li>Monteith, J. L., &amp; Unsworth, M. H. (2013). <em>Principles of Environmental Physics</em>. Academic Press.<br>
+</li>
+<li>Allen, R. G., Pereira, L. S., Raes, D., &amp; Smith, M. (1998). <em>Crop evapotranspiration</em> – FAO Irrigation and Drainage Paper 56.<br>
+</li>
+<li>Arya, S. P. (2001). <em>Introduction to Micrometeorology</em>. Academic Press.<br>
+</li>
+<li>Oke, T. R. (2002). <em>Boundary Layer Climates</em>. Routledge.</li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+    const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+    const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+    let newTheme = '';
+    if(darkModeDefault) {
+      newTheme = isAlternate ? baseTheme : alternateTheme;
+    } else {
+      newTheme = isAlternate ? alternateTheme : baseTheme;
+    }
+    const changeGiscusTheme = () => {
+      // From: https://github.com/giscus/giscus/issues/336
+      const sendMessage = (message) => {
+        const iframe = document.querySelector('iframe.giscus-frame');
+        if (!iframe) return;
+        iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+      }
+      sendMessage({
+        setConfig: {
+          theme: newTheme
+        }
+      });
+    }
+    const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+    if (isGiscussLoaded) {
+      changeGiscusTheme();
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  const darkModeDefault = false;
+  let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+    toggleGiscusIfUsed(toAlternate, darkModeDefault);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp("^(?:http:|https:)\/\/www\.quarto\.org\/custom");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+          // target, if specified
+          link.setAttribute("target", "_blank");
+          if (link.getAttribute("rel") === null) {
+            link.setAttribute("rel", "noopener");
+          }
+          // default icon
+          link.classList.add("external");
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<script src="https://utteranc.es/client.js" repo="gisma-courses/TLS-tree-climate" issue-term="pathname" theme="github-light" crossorigin="anonymous" async="">
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../doc/tls_v1_2.html" class="pagination-link" aria-label="Using leaf area density (LAD) from TLS data in ENVI-met for 3D plants">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Using leaf area density (LAD) from TLS data in ENVI-met for 3D plants</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../doc/osm2envi.html" class="pagination-link" aria-label="QGIS ENVIMET Preprocessor">
+        <span class="nav-page-text">QGIS ENVIMET Preprocessor</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+      &nbsp;
+    </div>   
+    <div class="nav-footer-center">
+<p>TLS-tree-climate (2025)</p>
+<div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/gisma-courses/TLS-tree-climate/edit/main/doc/fluxes_corrected.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/gisma-courses/TLS-tree-climate/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div>
+    <div class="nav-footer-right">
+      &nbsp;
+    </div>
+  </div>
+</footer>
+
+
+
+
+</body></html>

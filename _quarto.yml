@@ -1,0 +1,50 @@
+project: 
+  type: website
+  output-dir: docs
+
+website:
+  bread-crumbs: false
+  open-graph: true
+  page-navigation: true  
+  title: "Envi_Met TLS-tree-climate"
+  site-url: https://gisma-courses.github.io/TLS-tree-climate
+  repo-url: https://github.com/gisma-courses/TLS-tree-climate
+  repo-actions: [edit, issue]
+  search: 
+    location: navbar
+    type: textbox
+  page-footer: "TLS-tree-climate (2025)" 
+  twitter-card:
+    creator: "@gisma"
+  comments:
+    utterances:
+      repo: gisma-courses/TLS-tree-climate
+
+  navbar:
+    logo: /images/logooil.jpg
+
+  sidebar:
+    pinned: true
+    align: center
+    style: "docked"
+    collapse-level: 1
+    contents:
+      - doc/evaluation.qmd
+      - doc/tls_v1_2.qmd
+      - doc/fluxes_corrected.qmd
+      - doc/osm2envi.qmd
+      - doc/treespecies.qmd
+      - text: "---"
+
+format:
+  html:
+    theme: 
+      light: lumen
+      dark: lumen  # avoid SCSS crash by avoiding custom scss fallback
+    css: css/styles.css
+    code-background: true
+    code-copy: true
+    toc: true
+    link-external-icon: true
+    link-external-newwindow: true
+    link-external-filter: '^(?:http:|https:)\/\/www\.quarto\.org\/custom'

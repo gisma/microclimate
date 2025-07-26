@@ -1,5 +1,3 @@
-execute: false
-
 ---
 title: "Tree Species Classification Cleaning with OTB and Terra"
 format: html
@@ -7,7 +5,63 @@ execute:
   eval: false
 ---
 
-```{r setup}
+Purpose of Tree Data for ENVI-met Modeling
+This workflow prepares classified tree species data as a basis for generating individual tree objects for use in ENVI-met’s 3DPLANT module. Each tree location is linked to a simplified vertical LAD profile and assigned to a species class (e.g. Fagus sylvatica, Quercus robur, Pseudotsuga menziesii), which defines its interaction with ENVI-met’s radiation and vegetation modules.
+
+The underlying classification raster originates from official, state-level aerial RGB orthophotos with a spatial resolution of 0.3 m. These orthophotos provide sufficient detail to allow object-based species classification at the level of individual tree crowns.
+
+Species prediction was performed using a leave-location-out forward feature selection approach implemented via the CAST package in R. This ensures that classification results generalize across spatially distinct regions by avoiding overfitting to local spectral conditions.
+
+Before assigning vegetation objects to the ENVI-met model domain, species maps are despeckled, aggregated, and contextually corrected to remove isolated or misclassified tree crowns (e.g. Douglas-fir pixels in beech-dominated stands). This ensures that each synthetic ENVI-met tree is placed in a semantically and structurally consistent vegetation context.
+
+
+
+## 1. Setup and Environment
+
+Manual Setup of OTB Environment for use with link2GI
+
+The R package `link2GI` provides wrapper functions to connect R with external geospatial software like Orfeo Toolbox (OTB), GRASS GIS, and QGIS. The function `linkOTB()` is used to locate OTB binaries and configure the R session to allow calling OTB applications via command-line interface (CLI) from R.
+
+However, in many modern setups—especially on Linux or in manually installed environments (e.g., extracted zip files)—the required environment variables are not set globally, and `linkOTB()` alone is not sufficient. This typically leads to errors like:
+
+* "Application not found"
+* "No XML application descriptors"
+* "Could not find CLI tools"
+
+To fix this, two critical environment variables need to be explicitly set after calling `linkOTB()`:
+
+1. `OTB_APPLICATION_PATH`:
+   This must point to the directory `lib/otb/applications`, where all XML definitions of the OTB applications are stored. These XML files describe how to call each OTB tool from the command line.
+
+2. `PATH`:
+   This must include the directory where OTB binaries like `otbcli_BandMath` are stored (typically `bin/`). Without this, system calls from R to OTB will fail.
+
+Example for Linux:
+
+```r
+otb <- link2GI::linkOTB(searchLocation = "~/apps/OTB-9.1.0-Linux/")
+Sys.setenv(OTB_APPLICATION_PATH = file.path(dirname(as.character(otb$pathOTB)), "lib/otb/applications"))
+Sys.setenv(PATH = paste(otb$pathOTB, Sys.getenv("PATH"), sep = ":"))
+```
+
+Example for Windows:
+
+```r
+otb <- link2GI::linkOTB(searchLocation = "C:/OTB-9.1.0-Win64/")
+Sys.setenv(OTB_APPLICATION_PATH = "C:/OTB-9.1.0-Win64/lib/otb/applications")
+Sys.setenv(PATH = paste("C:/OTB-9.1.0-Win64/bin", Sys.getenv("PATH"), sep = ";"))
+```
+
+Note:
+
+* On Windows, use forward slashes `/` in the path.
+* The PATH separator is `;` on Windows and `:` on Unix-based systems.
+
+This workaround is often necessary in portable, containerized, or research setups where full system integration (e.g., PATH exports, registry entries) is not available or not desired. It ensures that `link2GI` can still function as intended by emulating the expected environment internally within R.
+
+
+```{r env-setup}
+
 # Load libraries
 library(terra)
 library(RColorBrewer)
@@ -16,11 +70,7 @@ library(envimaR)
 library(tools)
 library(mapview)
 library(dplyr)
-```
 
-## 1. Setup and Environment
-
-```{r env-setup}
 # Project root and OTB environment
 root_folder <- rprojroot::find_rstudio_root_file()
 otb <- link2GI::linkOTB(searchLocation = "~/apps/OTB-9.1.0-Linux/")
@@ -43,7 +93,19 @@ ts <- data.frame(
 )
 ```
 
-## 3. Load and Preprocess Species Classification
+## 3. Rationale: Why Despeckle First?
+
+> **🔍 Why do we despeckle at original resolution before aggregation and contextual filtering?**
+>
+> - **Preserve spatial detail**: High-frequency noise (e.g., misclassified single pixels) must be removed *before* they get averaged into larger grid cells.
+> - **Avoid error propagation**: Aggregating first would carry speckle artifacts into the coarser grid.
+> - **Enable ecologically meaningful correction**: Focal filtering (e.g., Douglas-fir to Oak) should be applied on ~1 m resolution where "dominance" of classes has meaning.
+> - **Step order summary**:
+>     1. `ClassificationMapRegularization`: Clean noise at 0.2 m
+>     2. `aggregate()`: Smooth to 1 m (e.g., crown scale)
+>     3. `focal()`: Replace ecologically implausible patches
+
+## 4. Load and Preprocess Species Classification
 
 ```{r read-classification}
 sapflow_species <- readRDS("data/aerial/sfprediction_ffs_5-25_MOF_rgb.rds")
@@ -52,7 +114,7 @@ sapflow_species <- raster::crop(sapflow_species, sapflow_ext)
 raster::writeRaster(sapflow_species, "data/aerial/prediction_ffs_cut.tif", overwrite = TRUE)
 ```
 
-## 4. Majority Filtering (OTB)
+## 5. Majority Filtering (OTB Despeckle)
 
 ```{r otb-majority}
 cmr <- parseOTBFunction("ClassificationMapRegularization", otb)
@@ -63,7 +125,7 @@ cmr$progress <- "true"
 filter_treespecies <- runOTB(cmr, gili = otb$pathOTB, quiet = FALSE, retRaster = TRUE)
 ```
 
-## 5. Aggregate to 1 m Resolution
+## 6. Aggregate to 1 m Resolution
 
 ```{r aggregate}
 r <- rast("data/aerial/majority_out.tif")
@@ -75,7 +137,7 @@ outfile <- sprintf("data/aerial/%s_%sm.tif", tools::file_path_sans_ext(basename(
 writeRaster(r_agg, outfile, overwrite = TRUE)
 ```
 
-## 6. Contextual Correction (Douglas → Beech/Oak)
+## 7. Contextual Correction (Douglas → Beech/Oak)
 
 ```{r contextual-replace}
 replace_douglas_in_buche_eiche <- function(rast_input,
@@ -98,19 +160,10 @@ replace_douglas_in_buche_eiche <- function(rast_input,
 species_cleaned <- replace_douglas_in_buche_eiche(r_agg, window_size = 5)
 ```
 
-## 7. Visualize Results
+## 8. Visualize Results
 
 ```{r visualize, eval=interactive()}
 mapviewOptions(fgb = FALSE)
 m1 <- mapview(filter_treespecies, col.regions = brewer.pal(12, "Paired"), at = ts$ID)
 m2 <- mapview(species_cleaned, col.regions = brewer.pal(12, "Paired"), at = ts$ID)
 m1 + m2
-```
-
-------------------------------------------------------------------------
-
-## Notes
-
--   This tutorial uses OTB and `terra` for spatial filtering and aggregation.
--   Douglas-fir patches are contextually reassigned based on majority filtering.
--   Resulting maps can be explored interactively via `mapview`.

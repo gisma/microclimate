@@ -1,0 +1,1220 @@
+---
+title: "Using leaf area density (LAD) from TLS data in ENVI-met for 3D plants"
+author: "Chris Reudenbach"
+date: "2025-07-16"
+format:
+  html:
+    self-contained: true
+    toc: true
+    number-sections: false
+    math: mathjax
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+---
+
+::: {layout-ncol="2"}
+![Tree No. 8 original not projected TLS Data](tls_tree8.gif){width="400"}
+
+![Tree No. 8 in Envimet 3D Plant representation](envimet08tree.gif){width="580"}
+::: 
+
+
+---
+
+# Using leaf area density (LAD) from TLS data in ENVI-met for 3D plants.
+
+## Background and Method
+
+This section explains the theoretical principles of leaf area density (LAD) and describes how it can be determined using terrestrial laser scanning (TLS). Leaf area density is an important parameter in environmental modeling, for example for radiation balance and microclimate simulations. It indicates the leaf area per volume (m²/m³) and is therefore a decisive factor for microclimate simulations, radiation models, and energy flows in vegetation stands.
+
+| **Approach Type** | **Name / Description** | **Nature** |
+|-------------------|------------------------------------|------------------|
+| Pulse-count based | Simple linear normalization of return counts or voxel hits | Empirical, direct |
+| **Linear normalization** | Straightforward normalization of pulse counts by voxel volume or max LAD | Empirical, basic |
+| Pulse-density normalization | Adjusts for occlusion and scan geometry | Semi-empirical |
+| Gap fraction models | Estimate LAD/LAI from canopy openness statistics | Semi-empirical |
+| **Beer–Lambert conversion conversion** | Uses exponential light attenuation to infer LAD | **Physically-based** |
+| Voxel-based inverse modeling | Optimizes 3D LAD to match observed light attenuation or reflectance | Physically-based |
+| Allometric / geometric reconstruction | Reconstructs crown volume and distributes LAD using QSM or shape fitting | Geometric, structural |
+
+-   **Linear normalization** is a practical baseline: simple, fast, and reproducible.
+-   **Beer–Lambert conversion** introduces realism via physical light attenuation.
+
+More advanced models (e.g. voxel inverse or QSM-based) aim for higher biophysical fidelity at the cost of complexity.
+
+The present analysis is based on TLS with a medium-range RIEGL scanner (e.g., VZ-400). This captures millions of 3D points of the vegetation structure with high angular resolution. The point cloud is divided into uniform voxels, from which the leaf area density is estimated in two ways.
+
+### Linear normalization (straightforwad)
+
+$$
+\text{LAD}_i = \frac{N_i}{N_{\max}} \cdot \text{LAD}_{\max}
+$$ - $N_i$: Number of laser points in voxel $i$\
+- $N_{\max}$: Maximum across all voxels\
+- $\text{LAD}_{\max}$: Maximum LAD value from the literature (e.g., 5 m²/m³)\
+
+### Beer–Lambert conversion
+
+$$
+\text{LAD}_i = -\frac{\ln\left(1 - \frac{N_i}{N_{\max}}\right)}{k \cdot \Delta z}
+$$
+
+-   $k$: Extinction coefficient (typically 0.3–0.5)
+-   $\Delta z$: vertical voxel height
+
+### Overall Workflow
+
+What happens in the script?
+
+| **Step** | **Description** | **Relevant Code** |
+|------------------|------------------------|------------------------------|
+| **1. Read & Filter LAS** | Load TLS data, optionally crop and clean it | `readLAS()` and `las = filter_poi(...)` |
+| **2. Voxel Grid Setup** | Set up 3D grid at defined `grain.size` | passed to `pixel_metrics(..., res = grain.size)` |
+| **3. Count Pulses** | Count returns in each voxel height bin | `pointsByZSlice()` function |
+| **4. Normalise Pulse Counts** | Divide by global max (relative LAD) | in `convert_to_LAD()`: `lad = (count / max) * LADmax` |
+| **5. Export Raster** | Convert metrics to raster stack | `terra::rast()` from `voxel_df` |
+| **6. Visualization** | Plot LAD profiles | see plotting section |
+| **7. Export to Plant3D** | Exports the LAD to ENVI-met | see export section |
+
+## Implemetation
+
+To use this ENVI-met tree modeling workflow in R, follow these steps to load and initialize the project correctly:
+
+Project Setup: Loading the R Project and Environment
+Download the project from next.hessenbox
+https://gds.hessen.de/INTERSHOP/web/WFS/HLBG-Geodaten-Site/de_DE/-/EUR/ViewDownloadcenter-Start
+##### Download and Unzip the Project Archive
+
+-  
+
+-   Unzip the folder to your desired location.
+
+-   The folder should contain at least:
+
+    -   An `*.Rproj` file (e.g. `envimet_tree_workflow.Rproj`)
+    -   A `data/` folder with input files like `tree_08.las`
+    -   One or more `R/` scripts
+
+##### Open the Project in RStudio
+
+-   Go to **File → Open Project**
+-   Select the `*.Rproj` file (e.g. `microclimate_TLS.Rproj`)
+-   This ensures that the project directory is treated as the root for all file paths.
+
+> The use of the `{here}` package depends on having a valid RStudio project. Without this, file paths may not resolve correctly.
+
+##### Data Input Parameters and Paths
+
+::: {.callout-tip appearance="minimal"}
+The input data set tree_08.las is a cleaned terrestrial laser scan of a single, isolated tree. All surrounding vegetation and ground points have been removed, so the file contains only the tree’s structure—trunk, branches, and foliage. Stored in standard LAS format, it provides high-resolution 3D point data suitable for voxelization, LAD calculation, or input into microclimate and radiative models. This detailed structural data is essential for generating true 3D tree entities in ENVI-met; without it, only simplified vegetation (SimplePlants) can be used.
+:::
+
+Set global parameters for the workflow, such as file paths, voxel resolution, and maximum LAD value for normalization.
+
+```{r setup}
+
+library(terra)
+library(lidR)
+library(sf)
+library(here)
+library(data.table)
+
+zmax <- 40  
+grain.size <- 1  
+project_root <- here::here()  
+
+# Choose LAD method: "linear" or "beer"
+# Beer–Lambert conversion Notes:
+# - Avoids log(0) and 1 by clipping near-extreme values
+# - Use when cumulative light absorption or occlusion is relevant
+# - Suitable if extinction coefficient is known or estimated from prior studies
+lad_method <- "beer"  # Set to "linear" or "beer"
+
+# Optional: extinction coefficient (used only for Beer–Lambert conversion)
+k_extinction <- 0.25
+
+
+las_file <- file.path(project_root, "data/TLS/tree_08.laz")  
+output_voxels <- file.path(project_root, "data/TLS/LAD_voxDF.rds")  
+output_array <- file.path(project_root, "data/TLS/lad_array_m2m3.rds")  
+output_profile_plot <- file.path(project_root, "data/TLS/lad_vertical_profile.pdf")  
+```
+
+### Voxelization of TLS data
+
+Voxelisation turns a 3D TLS point cloud into a grid of cubes (voxels), where each voxel holds structural information. The number of points per voxel is used to estimate Leaf Area Density (LAD), typically normalized relative to the voxel with the most returns.
+
+-   Each voxel = a 1×1×1 m³ cube
+-   Count the laser hits per voxel
+-   Normalize to maximum
+-   Multiply by a literature-based LAD_max (e.g. 5 m²/m³)
+
+This gives a spatially distributed LAD profile suitable for further analysis or models like ENVI-met.
+
+::: {.callout-tip title="View Code" appearance="minimal" collapse="true"}
+```{r}
+library(terra)
+
+ las <- lidR::readLAS(las_file)  # Read the LAS/LAZ file (point cloud data)
+  las@data$Z <- las@data$Z - min(las@data$Z, na.rm = TRUE)  
+  maxZ <- min(floor(max(las@data$Z, na.rm = TRUE)), zmax)  
+  las@data$Z[las@data$Z > maxZ] <- maxZ  
+pointsByZSlice = function(Z, maxZ){
+  heightSlices = as.integer(Z) # Round down
+  zSlice = data.table::data.table(Z=Z, heightSlices=heightSlices) # Create a data.table (Z, slices))
+  sliceCount = stats::aggregate(list(V1=Z), list(heightSlices=heightSlices), length) # Count number of returns by slice
+  
+  ##############################################
+  # Add columns to equalize number of columns
+  ##############################################
+  colRange = 0:maxZ
+  addToList = setdiff(colRange, sliceCount$heightSlices)
+  n = length(addToList)
+  if (n > 0) {
+    bindDt = data.frame(heightSlices = addToList, V1=integer(n))
+    sliceCount = rbind(sliceCount, bindDt)
+    # Order by height
+    sliceCount = sliceCount[order(sliceCount$heightSlices),]
+  }
+  
+  colNames = as.character(sliceCount$heightSlices)
+  colNames[1] = "ground_0_1m"
+  colNames[-1] = paste0("pulses_", colNames[-1], "_", sliceCount$heightSlices[-1]+1, "m")
+  metrics = list()
+  metrics[colNames] = sliceCount$V1
+  
+  return(metrics)
+  
+} #end function pointsByZSlice
+
+# --- Main function ---
+preprocess_voxels <- function(normlas, grain.size = 1, maxP =zmax, normalize = TRUE, as_raster = TRUE) {  
+  las <- normlas  
+  
+  # Filter height range
+  las <- filter_poi(las, Z >= 0 & Z <= maxP)  
+  if (lidR::is.empty(las)) return(NULL)
+  # Determine Z-slices
+  maxZ <- floor(max(las@data$Z))  
+  maxZ <- min(maxZ, maxP)  
+  
+  
+  # Compute voxel metrics
+  func <- formula(paste0("~pointsByZSlice(Z, ", maxZ, ")"))  
+  voxels <- pixel_metrics(las, func, res = grain.size)  # Calculate metrics in each voxel (3D grid cell)
+  
+  # Optionally normalize values by voxel volume
+  if (normalize) {
+    vvol <- grain.size^3  
+    voxels <- voxels / vvol  
+  }
+  
+  # Return as both terra::SpatRaster and data.frame
+  result <- list()  
+  
+  if (as_raster) {
+    result$raster <- voxels  
+  }
+  
+  # Convert to data.frame
+  xy <- terra::xyFromCell(voxels, seq_len(ncell(voxels)))  
+  vals <- terra::values(voxels)  
+  df <- cbind(xy, vals)  
+  colnames(df)[1:2] <- c("X", "Y")  
+  result$df <- df  
+  
+  return(result)
+}
+
+
+
+
+vox_out <- preprocess_voxels(las, grain.size = 1, maxP = zmax)  
+```
+:::
+
+#### Conversion to LAD (m²/m³)
+
+The **conversion to LAD** (Leaf Area Density, in m²/m³) from TLS-based voxel pulse counts is done using a **relative normalization heuristic** which is adopted as a practical approximation in voxel-based canopy structure analysis using TLS (Terrestrial Laser Scanning) data.:
+
+For each voxel layer (e.g. `pulses_2_3m`), the LAD is calculated as:
+
+$$
+\text{LAD}_{\text{voxel}} = \left( \frac{\text{pulse count in voxel}}{\text{maximum pulse count over all voxels}} \right) \times \text{LAD}_{\text{max}}
+$$
+
+Where:
+
+-   `pulse count in voxel` = number of returns in this voxel layer (from TLS)
+-   `max_pulse` = the maximum pulse count found in *any* voxel (used for normalization)
+-   `LAD_max` = a fixed normalization constant (e.g. 5.0 m²/m³) chosen from literature or calibration
+
+::: {.callout-note title="Typical LADₘₐₓ Values by Species" collapse="true"}
+
+| Species / Structure Type             | LADₘₐₓ (m²/m³) | Source / Notes                                                 |
+| ------------------------------------ | -------------- | -------------------------------------------------------------- |
+| **Fagus sylvatica** (European beech) | 3.5–5.5        | Calders et al. (2015), Chen et al. (2018)                      |
+| **Quercus robur** (English oak)      | 3.0–6.0        | Hosoi & Omasa (2006), field studies with TLS voxelization      |
+| **Coniferous trees** (e.g. pine)     | 4.0–7.0        | Wilkes et al. (2017), higher LAD due to needle density         |
+| **Mixed broadleaf forest**           | 3.0–6.0        | Flynn et al. (2023), canopy averaged estimates                 |
+| **Shrubs / understorey**             | 1.5–3.0        | Chen et al. (2018),lower vertical structure density |
+| **Urban street trees**               | 2.0–4.0        | Simon et al. (2020), depending on pruning and species          |
+
+*LAD values refer to maximum expected per 1 m vertical voxel. Values depend on species, seasonality, and scanning conditions.*
+
+:::
+
+**What this means conceptually**
+
+You're not measuring absolute LAD, but instead:
+
+-   Using the number of TLS returns per voxel as a proxy for leaf density
+-   Then normalization all voxels relatively to the most "leaf-dense" voxel
+-   The `LAD_max` defines what value the "densest" voxel should reach in terms of LAD
+
+This is fast, simple, and works well when:
+
+-   You want relative structure across the canopy
+-   You don’t have absolute calibration (e.g. with destructive sampling or hemispheric photos)
+
+**Caveats and assumptions**
+
+-   This approach assumes the TLS beam returns are proportional to leaf area, which is a simplification
+-   It's sensitive to occlusion and TLS positioning
+-   The choice of `LAD_max` is crucial—common values from literature range from 3–7 m²/m³ for dense canopies
+
+The LAD conversion in the following code is a **relative, normalized mapping** of TLS pulse counts to LAD values, normalized by the highest voxel return and normalized using a fixed `LAD_max`. This gives a plausible LAD field usable for analysis, visualization, or simulation input (e.g. for ENVI-met).
+
+::: {.callout-tip title="View Code" appearance="minimal" collapse="true"}
+```{r}
+library(terra)
+convert_matrix_to_df <- function(mat) {  
+  df <- as.data.frame(mat)  
+  colnames(df) <- attr(mat, "dimnames")[[2]]  
+  return(df)
+}
+
+# --- Preprocess LiDAR data into voxel metrics -------------------------------
+vox_out <- preprocess_voxels(las, grain.size = 1, maxP = zmax)  # Calculate vertical pulse metrics
+vox_df <- convert_matrix_to_df(vox_out$df)                      # Convert voxel array to data.frame
+
+#' Convert TLS voxel pulse data to LAD using Beer–Lambert conversion conversion with post-normalization
+#'
+#' @param df A data.frame with pulse columns (from TLS voxelization)
+#' @param grainsize Numeric, vertical voxel height (e.g., 1 m)
+#' @param k Extinction coefficient (default: 0.3)
+#' @param scale_factor Optional multiplicative scale factor (default: 1.2)
+#' @param lad_max Optional maximum LAD clamp (e.g. 2.5); set to NULL to disable
+#' @param lad_min Optional minimum LAD threshold (e.g. 0.05); set to NULL to disable
+#' @param keep_pulses Logical, whether to retain pulse columns (default: FALSE)
+#'
+#' @return Data.frame with LAD columns added
+#' @export
+convert_to_LAD_beer <- function(df,
+                                grainsize = 1,
+                                k = 0.3,
+                                scale_factor = 1.2,
+                                lad_max = 2.5,
+                                lad_min = 0.05,
+                                keep_pulses = FALSE) {
+  df_lad <- df
+  pulse_cols <- grep("^pulses_", names(df_lad), value = TRUE)
+  
+  for (col in pulse_cols) {
+    lad_col <- paste0("lad_", sub("pulses_", "", col))
+    p_rel <- df_lad[[col]] / max(df_lad[[col]], na.rm = TRUE)
+    
+    # Avoid log(0) and 1
+    p_rel[p_rel >= 1] <- 0.9999
+    p_rel[p_rel <= 0] <- 1e-5
+    
+    # Apply Beer–Lambert conversion
+    lad_vals <- -log(1 - p_rel) / (k * grainsize)
+    
+    # Apply normalization
+    lad_vals <- lad_vals * scale_factor
+    
+    # Clamp LAD values if needed
+    if (!is.null(lad_max)) {
+      lad_vals <- pmin(lad_vals, lad_max)
+    }
+    if (!is.null(lad_min)) {
+      lad_vals <- pmax(lad_vals, lad_min)
+    }
+    
+    df_lad[[lad_col]] <- lad_vals
+    
+    if (!keep_pulses) {
+      df_lad[[col]] <- NULL
+    }
+  }
+  
+  return(df_lad)
+}
+
+
+#' Convert TLS Pulse Counts to Leaf Area Density (LAD)
+#'
+#' Transforms vertically binned pulse counts (from voxelized TLS data) into Leaf Area Density (LAD, m²/m³)
+#' by normalizing pulse values to a specified LAD maximum.
+#'
+#' @param df A `data.frame` containing voxelized TLS pulse data. Must include columns starting with `"pulses_"`, 
+#'           each representing pulse returns per vertical layer (e.g. `pulses_1_2m`, `pulses_2_3m`, ...).
+#' @param grainsize Numeric. The voxel edge length in meters (assumed cubic). Default is `1`.
+#' @param LADmax Numeric. The maximum LAD value in m²/m³ for relative normalization. Common values: `4.0`–`6.0`. Default is `5.0`.
+#' @param keep_pulses Logical. If `FALSE` (default), the original pulse columns are removed from the output. If `TRUE`, they are retained alongside the LAD columns.
+#'
+#' @return A modified `data.frame` with new LAD columns (`lad_1_2m`, `lad_2_3m`, ...) in m²/m³, normalized relatively to `LADmax`.
+#'
+#' @details
+#' - Each `pulses_*` column is linearly normalized by the overall maximum value across all vertical bins and locations.
+#' - The result is a relative LAD estimate, useful for ecological modeling, input to microclimate simulations (e.g., ENVI-met), or structural analysis.
+#' - Voxel volume is implicitly considered constant due to cubic assumption (via `grainsize`) but is not explicitly used here.
+#'
+#' @examples
+#' \dontrun{
+#'   df_vox <- readRDS("TLS/voxel_metrics.rds")
+#'   lad_df <- convert_to_LAD(df_vox, grainsize = 1, LADmax = 5)
+#'   head(names(lad_df))  # Should show lad_* columns
+#' }
+#'
+#' @export
+convert_to_LAD <- function(df, grainsize = 1, LADmax = 5.0, keep_pulses = FALSE) {  
+  # df: Data frame mit voxelisierten TLS-Daten
+# grainsize: Voxelgröße in m (würfelförmig angenommen)
+# LADmax: maximaler LAD-Wert (Literaturbasiert, z. B. 5.0 m²/m³)
+  df_lad <- df  
+  pulse_cols <- grep("^pulses_", names(df_lad), value = TRUE)  
+  
+  # Schichtanzahl = Anzahl Pulse-Spalten
+  n_layers <- length(pulse_cols)  
+  
+  # Optional: originales Maximum zur linearen Skalierung (relativ)
+  max_pulse <- max(df_lad[, pulse_cols], na.rm = TRUE)  
+  
+  # Umwandlung in LAD (m²/m³) – Skaliert auf LADmax oder absolut (siehe Kommentar)
+  for (col in pulse_cols) {
+    lad_col <- paste0("lad_", sub("pulses_", "", col))  
+    
+    # Hier wird RELATIV zu max_pulse skaliert → einfache Normalisierung
+    df_lad[[lad_col]] <- (df_lad[[col]] / max_pulse) * LADmax  
+    
+    # Optional: löschen der Pulse-Spalten
+    if (!keep_pulses) {
+      df_lad[[col]] <- NULL  
+    }
+  }
+  
+  return(df_lad)
+}
+
+
+
+# method selection
+if (lad_method == "beer") {
+  message("✔ Using Beer–Lambert conversion LAD conversion...")
+  df_lad <- convert_to_LAD_beer(
+    vox_df,
+    grainsize = 1,
+    k = k_extinction,
+    scale_factor = 0.4,
+    lad_max = 2.5,
+    lad_min = 0.0
+  )
+} else if (lad_method == "linear") {
+  message("Using linear LAD conversion...")
+  df_lad <- convert_to_LAD(
+    vox_df,
+    grainsize = 1,
+    LADmax = 5.0
+  )
+} else {
+  stop("Unknown LAD conversion method: choose 'linear' or 'beer'")
+}
+
+
+```
+:::
+
+```{R}
+
+DT::datatable(head(df_lad, 5))
+
+```
+
+#### Raster Stack Representation of 3D Vegetation (Voxel-Based)
+
+We represent 3D vegetation using a **voxel-based raster stack**:
+
+-   Space is divided into cubic voxels (e.g. 1 × 1 × 1 m).
+-   Each raster layer represents a height slice (e.g. 0–1 m, 1–2 m, …).
+-   Voxels store values like pulse counts or *Leaf Area Density (LAD)*.
+
+This 2D stack structure enables:
+
+-   Vertical profiling of vegetation per XY column.
+-   Layer-wise analysis (e.g. median, entropy).
+-   Integration with raster data like topography or irradiance.
+-   Use in raster-based ecological and microclimate models.
+
+It supports both analysis and visualization of vertical structure with standard geospatial tools.
+
+ENVI-met supports custom vegetation input via the SimplePlant method, which requires a vertical LAD profile per grid column. A raster stack derived from TLS data provides exactly this: each layer represents LAD in a specific height slice, and each XY cell corresponds to one vertical profile. This structure can be exported as CSV, ASCII rasters, or custom profile files.
+
+For 3D vegetation parameterization in ENVI-met 5.8+, the raster stack enables preprocessing of spatially explicit LAD or LAI profiles, even if some reformatting is needed.
+
+The raster stack also supports canopy clustering and prototyping. It allows classification of structural types, simplification of complex vegetation, and the creation of representative profiles for simulation.
+
+```{r}
+library(terra)
+# In SpatRasterStack umwandeln
+xy <- df_lad[, c("X", "Y")]  
+lad_vals <- df_lad[, grep("^lad_", names(df_lad), value = TRUE)]  
+
+lad_raster <- rast(cbind(xy, lad_vals), type = "xyz")  
+plot(lad_raster)
+
+```
+
+In a more 3D version it looks like below.
+
+```{r}
+# #| eval: false
+# #| include: false
+# library(terra)
+# library(rgl)
+# 
+# # Threshold value for LAD
+# threshold <- 0.1 # change as needed
+# 
+# # Step 1: Convert raster to voxel data frame
+# rast_cube <- lad_raster  # your raster stack
+# voxel_df <- as.data.frame(rast_cube, xy = TRUE, na.rm = TRUE)
+# names(voxel_df) <- c("x", "y", paste0("z", seq_len(nlyr(rast_cube))))
+# 
+# # Step 2: Reshape to long format
+# voxel_long <- reshape(
+#   voxel_df,
+#   direction = "long",
+#   varying = paste0("z", seq_len(nlyr(rast_cube))),
+#   v.names = "val",
+#   timevar = "z",
+#   times = seq_len(nlyr(rast_cube))
+# )
+# 
+# # Step 3: Clean up and filter by threshold
+# voxel_long <- voxel_long[!is.na(voxel_long$val) & voxel_long$val > threshold, ]
+# voxel_long$z <- as.numeric(voxel_long$z)
+# 
+# # Step 4: Normalize colors
+# colors <- terrain.colors(100)[cut(voxel_long$val, breaks = 100)]
+# 
+# # Step 5: Draw voxel cubes
+# open3d(useNULL = TRUE)
+# for (i in seq_len(nrow(voxel_long))) {
+#   shade3d(
+#     translate3d(cube3d(scale = 1), 
+#                 voxel_long$x[i], 
+#                 voxel_long$y[i], 
+#                 voxel_long$z[i]),
+#     color = colors[i],
+#     alpha = 0.8
+#   )
+# }
+# 
+# # Step 6: Render in browser
+# # Determine the bounds of your voxel space
+# xlim <- range(voxel_long$x)
+# ylim <- range(voxel_long$y)
+# zlim <- range(voxel_long$z)
+# 
+# # Draw bounding box
+# lines3d(rbind(
+#   c(xlim[1], ylim[1], zlim[1]),
+#   c(xlim[2], ylim[1], zlim[1]),
+#   c(xlim[2], ylim[2], zlim[1]),
+#   c(xlim[1], ylim[2], zlim[1]),
+#   c(xlim[1], ylim[1], zlim[1])
+# ), col = "black", lwd = 2)
+# 
+# lines3d(rbind(
+#   c(xlim[1], ylim[1], zlim[2]),
+#   c(xlim[2], ylim[1], zlim[2]),
+#   c(xlim[2], ylim[2], zlim[2]),
+#   c(xlim[1], ylim[2], zlim[2]),
+#   c(xlim[1], ylim[1], zlim[2])
+# ), col = "black", lwd = 2)
+# 
+# for (i in 1:4) {
+#   lines3d(
+#     rbind(
+#       c(xlim[c(1,2,2,1)][i], ylim[c(1,1,2,2)][i], zlim[1]),
+#       c(xlim[c(1,2,2,1)][i], ylim[c(1,1,2,2)][i], zlim[2])
+#     ), col = "black", lwd = 2
+#   )
+# }
+# 
+# # Optional: Add coordinate axes
+# axes3d(edges = c("x--", "y--", "z--"), col = "gray40")
+# title3d(xlab = "X", ylab = "Y", zlab = "Z")
+# widget <- rglwidget()
+# htmlwidgets::saveWidget(widget, "tree_voxel_viewer.html", selfcontained = TRUE)
+```
+
+#### Visualization
+
+##### **LAD Profile Visualizations from TLS Data**
+
+
+
+The `plot_lad_profiles()` function visualizes vertical *leaf area density* (LAD) profiles derived from voxelized TLS (terrestrial laser scanning) data. LAD represents leaf surface area per unit volume (m²/m³). The function provides three main plot styles:
+
+
+##### **1. XY Matrix Plot (`plotstyle = "each_median"`)**
+
+* Displays a grid of **mini-profiles**, each representing a 0.5 × 0.5 m (x/y) ground column.
+* Within each cell, a **normalized vertical LAD profile** is plotted:
+
+  * **Y-axis** (height) is normalized from 0 to 1 per column.
+  * **X-axis** shows LAD values normalized relative to the global LAD maximum.
+* Useful for comparing structural patterns across space.
+
+
+
+##### **2. Overall Median Profile (`plotstyle = "all_median"`)**
+
+* Aggregates LAD values across all (x/y) locations by height bin.
+* Produces a **typical vertical profile** using the median and smoothed with a moving average.
+* **Height is shown in absolute units** (e.g. meters).
+* Captures the dominant vertical canopy structure.
+
+
+
+##### **3. Single Profile (`plotstyle = "single_profile"`)**
+
+* Extracts and plots the LAD profile at a **specific (x, y) coordinate**.
+* Both **LAD and height are shown in absolute units**.
+* Plots the true vertical structure at one location.
+
+The matrix plot shows multiple vertical LAD profiles arranged in a grid, with each small plot corresponding to a specific spatial location. This allows the vertical vegetation structure to be viewed in relation to its position on the ground. To make the individual profiles comparable, both height and LAD values are normalized within the plot. A reference profile on the side shows the overall median LAD distribution by height, which helps interpret the scale and shape of the individual profiles.
+
+::: {.callout-tip title="View Code" appearance="minimal" collapse="true"}
+```{r}
+                                         
+
+# --- Reshape LAD data to long format ----------------------------------------
+
+lad_df <- as.data.frame(lad_raster, xy = TRUE, na.rm = TRUE)     # Convert raster to data.frame
+
+# 1. Extract LAD columns and XY coordinates
+pulse_cols <- grep("^lad_", names(lad_df), value = TRUE)
+xy_cols <- c("x", "y")  # Adjust to "X", "Y" if needed
+
+# 2. Reshape to long format (one row per LAD layer)
+lad_df <- reshape(
+  data = lad_df[, c(xy_cols, pulse_cols)],
+  varying = pulse_cols,
+  v.names = "LAD",
+  timevar = "layer",
+  times = pulse_cols,
+  direction = "long"
+)
+
+# 3. Extract z-layer information from column names
+lad_df$z_low  <- as.numeric(sub("lad_(\\d+)_.*", "\\1", lad_df$layer))  
+lad_df$z_high <- as.numeric(sub("lad_\\d+_(\\d+)m", "\\1", lad_df$layer))  
+
+# 4. Compute mid-point height of each voxel layer
+lad_df$Height <- (lad_df$z_low + lad_df$z_high) / 2  
+
+# 5. Round to whole meters to create height classes
+lad_df$Height_bin <- round(lad_df$Height)  
+
+# --- Aggregate median LAD per 0.5 × 0.5 m column ----------------------------
+setDT(lad_df)  # Use data.table for efficient aggregation
+
+lad_by_column <- lad_df[  
+  , .(LAD_median = median(LAD, na.rm = TRUE)), 
+  by = .(x, y, Height_bin)
+]
+
+# Convert back to regular data.frame
+lad_df <- as.data.frame(lad_by_column)
+
+plot_lad_profiles <- function(lad_df, plotstyle = c("each_median", "all_median", "single_profile"),  
+                              single_coords = c(NA, NA)) {
+  plotstyle <- match.arg(plotstyle)  
+  
+  # Combine x and y coordinates into a unique column ID
+  lad_df$col_id <- paste(lad_df$x, lad_df$y, sep = "_")  
+  x_levels <- sort(unique(lad_df$x))  
+  y_levels <- sort(unique(lad_df$y))  
+  # Convert x/y coordinates to factor variables for matrix layout
+  lad_df$x_f <- factor(lad_df$x, levels = x_levels)  
+  lad_df$y_f <- factor(lad_df$y, levels = y_levels)  
+  n_x <- length(x_levels)  
+  n_y <- length(y_levels)  
+  
+  # Determine the maximum LAD value for relative normalization
+  lad_max <- max(lad_df$LAD_median, na.rm = TRUE)  
+  height_range <- range(lad_df$Height_bin, na.rm = TRUE)  
+  dx <- 0.8  
+  dy <- 0.8  
+  
+  par(mar = c(5, 5, 4, 5), xpd = TRUE)
+  
+ 
+
+  
+  # Differentiate by plot type: all profiles, overall profile, or single profile
+  if (plotstyle == "each_median") {
+ # Load PNG legend
+legend_img <- png::readPNG("output.png")
+
+# Define aspect-preserving image placement
+img_height_units <- 20
+img_width_units <- img_height_units * dim(legend_img)[2] / dim(legend_img)[1]  # preserve ratio
+
+# Define position
+img_x_left <- n_x + 1.5
+img_x_right <- img_x_left + img_width_units
+img_y_bottom <- 0
+img_y_top <- img_y_bottom + img_height_units
+
+# Begin plot
+plot(NA, xlim = c(1, n_x + img_width_units + 4), ylim = c(1, n_y),
+     type = "n", axes = FALSE, xlab = "", ylab = "",
+     main = "Vertical LAD Profiles in XY Matrix", asp = 1.2)
+
+
+# Draw all LAD profiles
+for (i in seq_along(x_levels)) {
+  for (j in seq_along(y_levels)) {
+    profile <- subset(lad_df, x == x_levels[i] & y == y_levels[j])
+    if (nrow(profile) == 0) next
+    lad_scaled <- profile$LAD_median / lad_max
+    height_scaled <- (profile$Height_bin - min(height_range)) / diff(height_range)
+    lines(x = lad_scaled * dx + i,
+          y = height_scaled * dy + j,
+          col = "darkgreen", lwd = 1)
+  }
+}
+
+# Axis labels for ground position
+axis(1, at = 1:n_x, labels = round(x_levels, 1), las = 2)
+axis(2, at = 1:n_y, labels = round(y_levels, 1), las = 2)
+
+# Add the image
+rasterImage(legend_img,
+            xleft = img_x_left,
+            xright = img_x_right,
+            ybottom = img_y_bottom,
+            ytop = img_y_top)
+
+
+    
+  } else if (plotstyle == "all_median") {
+    unique_heights <- sort(unique(lad_df$Height_bin))  
+    lad_median <- numeric(length(unique_heights))  
+    for (i in seq_along(unique_heights)) {
+      h <- unique_heights[i]  
+      lad_median[i] <- median(lad_df$LAD[lad_df$Height_bin == h], na.rm = TRUE)  
+    }
+    lad_smooth <- stats::filter(lad_median, rep(1/3, 3), sides = 2)  
+    
+    plot(
+      lad_smooth, unique_heights,
+      type = "l",
+      col = "darkgreen",
+      lwd = 2,
+      xlab = "Leaf Area Density (m²/m³)",
+      ylab = "Height (m)",
+      main = "Vertical LAD Profile (smoothed)",
+      xlim = c(0, max(lad_smooth, na.rm = TRUE)),
+      ylim = range(unique_heights)
+    )
+    
+    text(
+      x = as.numeric(lad_smooth),
+      y = unique_heights,
+      labels = round(as.numeric(lad_smooth), 1),
+      pos = 4,
+      cex = 0.7,
+      col = "black"
+    )
+    grid()
+    
+    
+  } else if (plotstyle == "single_profile") {
+    x_target <- single_coords[1]  
+    y_target <- single_coords[2]  
+    tol <- 1e-6  
+    
+    profile <- subset(lad_df, abs(x - x_target) < tol & abs(y - y_target) < tol)  
+    
+    if (nrow(profile) == 0) {
+      # Show warning if no profile exists for selected coordinates
+      warning("No data for the selected coordinates.")
+      plot.new()
+      title(main = paste("No profile at", x_target, "/", y_target))
+      return(invisible(NULL))
+    }
+    
+    # Normalize height and LAD
+    height_range <- range(profile$Height_bin, na.rm = TRUE)  
+    # Determine the maximum LAD value for relative normalization
+    lad_max <- max(profile$LAD_median, na.rm = TRUE)  
+    
+    height_scaled <- (profile$Height_bin - min(height_range)) / diff(height_range)  
+    height_unscaled <- profile$Height_bin
+    # Determine the maximum LAD value for relative normalization
+    lad_scaled <- profile$LAD_median / lad_max  
+    
+    plot(
+      x = lad_scaled,
+      y = height_unscaled, #height_scaled,
+      type = "l",
+      lwd = 2,
+      col = "darkgreen",
+      xlab = "LAD (normalized)",
+      ylab = "Height (m)",
+      main = paste("Profile at", x_target, "/", y_target)
+    )
+  }
+}
+# --- Visualize LAD profiles -------------------------------------------------
+
+```
+:::
+
+```{r}
+# Option 1: Profile in each column
+plot_lad_profiles(lad_df, plotstyle = "each_median")
+
+# Option 2: Overall vertical LAD profile (median of all)
+plot_lad_profiles(lad_df, plotstyle = "all_median")
+
+# Option 3: Single profile at specified coordinates
+plot_lad_profiles(lad_df, plotstyle = "single_profile", single_coords = c(57.5, -94.5))
+
+
+```
+
+## ENVI-met 3D Tree Export 
+
+The next section describes more detailed how the key input values in the R function export_lad_to_envimet3d() are computed, derived or selected, and provides the rationale for each. The function converts a voxel-based Leaf Area Density (LAD) profile, typically obtained from Terrestrial Laser Scanning (TLS) data, into a structured XML file compatible with ENVI-met’s 3D tree model (.pld or PLANT3D).
+
+Given the sensitivity of ENVI-met simulations to tree morphology and LAD distribution, the function ensures that the spatial dimensions, vertical layering and LAD intensity values are all correctly represented. Some parameters are optional, but can be derived from the data if not explicitly set.
+
+The table below details each argument of the function, including its purpose, how it is determined and its necessity.
+
+| Code Line | Meaning | Reason |
+|--------------------|-------------------------|---------------------------|
+| `lad_df <-`<br>`lad_df[!is.na(lad_df$LAD_median), ]` | Removes entries with missing LAD values | Ensures only valid data is used in the LAD calculation and XML export |
+| `lad_df$i <-`<br>`as.integer(factor(lad_df$x))` | Converts x-coordinates to integer voxel column indices (i) | Required for ENVI-met LAD matrix indexing |
+| `lad_df$j <-`<br>`as.integer(factor(lad_df$y))` | Converts y-coordinates to integer voxel row indices (j) | Same as above, for the y-direction |
+| `z_map <-`<br>`setNames( ...)` | Maps unique height bins to sequential vertical indices (k) | Translates height levels into voxel layers compatible with ENVI-met |
+| `lad_df$k <-`<br>`z_map[as.character(lad_df$Height_bin)]` | Applies the vertical index to the LAD data | Aligns LAD values with ENVI-met vertical layer system |
+| `lad_df$lad_value <-`<br>`round(lad_df$LAD_median * scale_factor, 5)` | Scales LAD values and rounds to 5 digits | Brings LAD values to a usable range for ENVI-met and ensures precision |
+| `dataI <-`<br>`max(lad_df$i)` | Gets the number of horizontal grid cells in i-direction (width) | Required as matrix size input for ENVI-met |
+| `dataJ <-`<br>`max(lad_df$j)` | Gets the number of horizontal grid cells in j-direction (depth) | Required as matrix size input for ENVI-met |
+| `zlayers <-`<br>`max(lad_df$k)` | Gets the number of vertical layers | Sets the height resolution of the LAD matrix |
+
+------------------------------------------------------------------------
+
+## Automatic Grid Dimensions transformation
+
+Calculates the voxel grid dimensions in X, Y, and Z from the TLS-derived LAD profile.
+
+The table below outlines how the core spatial and structural parameters of the tree model are computed from the input LAD_DF data frame. These derived values define the three-dimensional structure of the tree in terms of its horizontal extent, vertical layering and canopy dimensions.
+
+Data I and data J represent the size of the voxel grid in the i and j dimensions, respectively, based on unique horizontal (x and y) and vertical (height bin) bins in the LAD profile.
+
+'Width' and 'Depth' describe the physical spread of the tree crown, inferred from the voxel grid extent if not manually set.
+
+Height is computed by multiplying the number of vertical layers (zlayers) by the voxel resolution (cellSize), providing the total modelled height of the canopy.
+
+These computed values are essential for correctly normalization and locating the 3D LAD matrix within the ENVI-met simulation domain to ensure visual and physiological realism.
+
+| Code Line | Meaning | Reason |
+|-------------------|------------------------|-----------------------------|
+| `Width  <- if (is.null(Width)) dataI else Width` | Uses the number of i-cells if Width is not provided | Automatically estimates tree width from voxel spread in x-direction |
+| `Depth  <- if (is.null(Depth)) dataJ else Depth` | Uses the number of j-cells if Depth is not provided | Automatically estimates tree depth from voxel spread in y-direction |
+| `Height <- zlayers * cellsize` | Converts number of vertical layers to metric height using cellsize | Computes physical tree height in meters for ENVI-met |
+
+``` r
+# 1. Remove NA values from the LAD column
+lad_df <- lad_df[!is.na(lad_df$LAD_median), ]
+
+# 2. Create discrete i and j indices for the horizontal position
+# (converts x and y coordinates into consecutive index values)
+lad_df$i <- as.integer(factor(lad_df$x))
+lad_df$j <- as.integer(factor(lad_df$y))
+
+# 3. Assign each Height_bin (z direction) a consecutive layer ID k
+# (z_map assigns an index layer to each unique height)
+z_map <- setNames(seq_along(sort(unique(lad_df$Height_bin))), sort(unique(lad_df$Height_bin)))
+lad_df$k <- z_map[as.character(lad_df$Height_bin)]
+
+# 4. Scale LAD values, e.g. to get from 0.02 to more realistic values such as 0.5–1.5
+lad_df$lad_value <- round(lad_df$LAD_median * scale_factor, 5)
+
+# 5. Calculate the maximum dimensions of the grid (for XML specifications)
+dataI <- max(lad_df$i) # Width in cells (x-direction)
+dataJ <- max(lad_df$j) # Depth in cells (y-direction)
+zlayers <- max(lad_df$k) # Number of vertical layers (z-direction)
+```
+
+## Transmittance and Albedo
+
+``` r
+Albedo = 0.18
+Transmittance = 0.3
+```
+
+**`Albedo = 0.18`**: Albedo is the fraction of incoming solar radiation reflected by the canopy surface. For deciduous trees, values usually range between **0.15 and 0.20**. `0.18` is a commonly used default for broadleaved species like *Fagus sylvatica* or *Quercus robur* in many ecological models (e.g., ENVI-met, MAESPA). It affects surface energy balance and radiation reflection in ENVI-met simulations.
+
+**`Transmittance = 0.3`**: Transmittance represents the proportion of shortwave radiation that passes through the canopy without being absorbed or reflected. Deciduous trees in full leaf have transmittance values between **0.1 and 0.4** depending on species and LAI. `0.3` reflects moderate canopy density, consistent with empirical observations for mid-summer crowns. It controls how much light reaches the ground and sub-canopy vegetation; affects microclimate and shading.
+
+Both values can be adjusted to match field measurements or literature for specific species or leaf phenology. However you can use them as robust fallback defaults when exact species traits are unavailable.
+
+## Season-Profile
+
+Defines monthly LAD normalization.
+
+`SeasonProfile = c(0.2, 0.2, 0.4, 0.7, 1.0, 1.0, 1.0, 0.8, 0.6, 0.3, 0.2, 0.2)`
+
+The `SeasonProfile` is a vector of 12 numeric values (one per month) weighting the *relative Leaf Area Density (LAD)* throughout the year. It models *seasonal leaf development and senescence*, controlling how much foliage is present in each month:
+
+-   Values range from `0.0` (no foliage) to `1.0` (full foliage).
+-   For deciduous trees like *Fagus sylvatica* or *Quercus robur*, foliage develops in **spring (April–May)**, peaks in **summer (June–August)**, and declines in **autumn (September–October)**.
+
+**Profile Breakdown**:
+
+| Months           | Value | Interpretation        |
+|------------------|-------|-----------------------|
+| Jan–Feb, Nov–Dec | 0.2   | Dormant / leafless    |
+| March            | 0.4   | Budburst begins       |
+| April            | 0.7   | Leaf expansion        |
+| May–July         | 1.0   | Full canopy           |
+| August           | 0.8   | Leaf maturity decline |
+| September        | 0.6   | Senescence onset      |
+| October          | 0.3   | Strong senescence     |
+
+The `SeasonProfile` directly influences LAD in ENVI-met’s dynamic vegetation simulation — affecting transpiration, shading, and energy balance across the simulation year. Adjusting this vector allows tailoring of phenology to site-specific or species-specific data.
+
+## `L-SystemBased` trees in ENVI-met (Experimetal)
+
+ENVI-met optionally allows procedural generation of tree architecture using *Lindenmayer Systems (L-Systems)* — a formal grammar originally used to simulate plant growth patterns. When `L-SystemBased = 1`, the geometry of the tree is not derived from a static LAD matrix alone, but supplemented or replaced by rule-based 3D branching structures which supplement or replace the matrix. This is **independent** of the LAD profile but may affect shading and visualisation in the Albero interface of ENVI-met.
+
+``` r
+L-SystemBased = 1
+Axiom = "F(2)V\V\\V/////B"
+IterationDepth = 3
+```
+
+### Explanation of Key Parameters
+
+| Parameter | Meaning |
+|--------------------|----------------------------------------------------|
+| `L-SystemBased` | If `1`, enables L-system generation (uses rules to grow plant structure) |
+| `Axiom` | Starting string ("seed") for the L-system; defines base growth |
+| `IterationDepth` | How many times to apply production rules; higher means more detail |
+| `TermLString` | Optional: Final symbol to be drawn/rendered (e.g. "L") |
+| `ApplyTermLString` | If `1`, interprets the `TermLString`; otherwise, renders entire string |
+
+### Default Settings
+
+![L-System Branching as implemented by default](L-tree.png){width="30%"}
+
+``` xml
+<L-SystemBased>1</L-SystemBased>
+<Axiom>F(2)V\V\\V/////B</Axiom>
+<IterationDepth>3</IterationDepth>
+<TermLString>L</TermLString>
+<ApplyTermLString>1</ApplyTermLString>
+```
+
+-   **`F(2)`**: Move forward with length 2 (main trunk)
+-   **`V\\V/////B`**: Branching pattern with rotations (backslashes and slashes encode rotation commands); `B` may denote a terminal leaf or bud
+-   **`IterationDepth = 3`**: The production rules (if defined) will be applied 3 times to this axiom, generating a fractal-like tree structure.
+
+> Note: In ENVI-met, the **actual grammar rules are hard-coded** and not customizable in `.pld` — only the axiom and iteration depth are user-defined. It is highly experimental and poorly documented
+
+Use `L-SystemBased = 1` if:
+
+-   You want **visual structure** added to otherwise sparse or low-resolution LAD matrices
+
+-   The tree lacks realistic shape (for Albero visualization)
+
+-   Use `L-SystemBased = 0` (default) if:
+
+    -   You already provide a **dense voxel-based LAD** (from TLS or similar)
+    -   You want **strict control** over the 3D structure via LAD profile only
+
+### Import TLS-based `.pld` into ENVI-met via Albero Clipboard
+
+**Requirements**\
+- ENVI-met 5.8+\
+- `.pld` file (e.g. `oak_tls_envimet.pld`)\
+- Albero editor (via Leonardo)
+
+**Steps**\
+1. **Open Albero**\
+→ Leonardo → Database → Plant Database\
+2. **Open Clipboard**\
+→ Click Clipboard (top-right)\
+3. **Import `.pld`**\
+→ Clipboard → Import → Load file\
+4. **Edit (optional)**\
+→ Adjust LAD, albedo, transmittance, name, etc.\
+5. **Send to Library**\
+→ Click “Send to Library”\
+6. **Use in ENVI-met**\
+→ In Leonardo/Spaces assign plant to your 3D model
+
+**Notes**\
+- `.pld` contains LAD(z) values (m²/m³)\
+- Use Advanced Settings to fine-tune visualization\
+- Custom plants stored in your personal Albero library
+
+## Key Benefits
+
+- **Efficient and scalable**: The method avoids destructive sampling by using TLS return counts as proxies for leaf density. This makes it suitable for large-scale or repeated surveys without the need for time-consuming ground calibration.
+
+- **Captures structural patterns**: Normalizing the LAD values retains the vertical and spatial structure of vegetation, enabling meaningful comparison of crown shape, canopy layering, and vegetation density across space or time.
+
+- **Directly usable in ENVI-met**: The output is structured as a raster stack with height-specific layers, aligning with the input requirements of ENVI-met's *SimplePlant* or *3D vegetation* modules. This enables seamless integration into microclimate simulations.
+
+## Limitations
+
+- **Simplified assumptions**: The linear mapping of TLS returns to LAD assumes a proportional relationship, which simplifies the complex interaction between laser pulses and vegetation surfaces.
+
+- **Scan geometry dependency**: Occlusion, scan angle, and varying point densities can distort the return distribution, especially in dense or multi-layered vegetation.
+
+- **Generic LAD normalization**: The maximum LAD value used for normalization is taken from literature-based estimates rather than site-specific measurements, which can introduce bias in absolute LAD magnitudes.
+
+## Conclusion
+
+This workflow offers a robust and accessible approach for analyzing vegetation structure and generating model-ready LAD profiles from TLS data. It is especially useful for **relative comparisons and ecological modeling**, but is **not intended for absolute LAD quantification without additional calibration**.
+
+
+
+# ENVI-met Pseudo-3DPLANT Profile Generation from ALS Data
+
+For a realitic sourounding we need voxelized ALS (Airborne Laser Scanning) data which needs to be usable as ENVI-met compatible 3DPLANT profiles. It includes LAD (Leaf Area Density) computation, profile clustering, and export to both GIS and XML formats for ENVI-met integration.
+
+To provide a realistic but computationally tractable vegetation structure, we apply a **pseudo-3D columnar tree approach**: each voxel column of ALS returns is interpreted as a simplified vertical tree profile. These profiles are clustered to reduce complexity, then exported as ENVI-met 3DPLANT objects.
+
+## Why ALS Requires a Specific LAD Approach
+
+Unlike TLS (Terrestrial Laser Scanning), which scans from the bottom-up and suffers from occlusion in upper layers, ALS samples vegetation top-down. This means:
+
+- **ALS oversamples upper canopy layers**
+- **ALS undersamples lower canopy due to occlusion**
+
+To correct for this sampling bias, we estimate LAD using a modified form of Beer's Law, based on the *normalized proportion of hits* per voxel layer. The key difference lies in the way "gap probability" is estimated: rather than tracking cumulative occlusion, ALS uses the **maximum return count per column** as a proxy for full canopy closure.
+
+## LAD Estimation Using Beer's Law
+
+We model LAD using:
+
+$$
+LAD = -\frac{\ln(1 - p)}{k \cdot dz}
+$$
+
+Where:
+- \( p \) is the normalized proportion of hits per voxel column (\( 0 < p < 1 \))
+- \( k \) is the light extinction coefficient
+- \( dz \) is the vertical resolution (voxel height)
+
+In our script, we set:
+- \( k = 0.3 \) (typical value)
+- LAD values are scaled using a multiplicative factor (default 1.2)
+
+### TLS Variant of LAD
+
+In TLS-based LAD estimation, we assume that the LiDAR sensor is located near ground level and that returns are accumulated from bottom to top. In this setup, each voxel's return count \( N_i \) is interpreted as contributing to the cumulative **transmittance** through the canopy.
+
+The Beer–Lambert law is applied as:
+
+$$
+\text{LAD}_i = -\frac{\ln\left(1 - \frac{N_i}{N_{\max}}\right)}{k \cdot \Delta z}
+$$
+
+Here:
+- \( N_i \): number of returns in voxel layer \( i \)
+- \( N_{\max} \): maximum number of returns in any voxel in the column (used to normalize return density)
+- \( \Delta z \): voxel height
+- \( k \): extinction coefficient
+
+#### Physical Interpretation
+
+The ratio \( \frac{N_i}{N_{\max}} \) estimates the **fraction of light intercepted** at layer \( i \), assuming the densest layer represents near-total occlusion. Thus, the term \( 1 - \frac{N_i}{N_{\max}} \) represents the **gap fraction** — i.e., the **probability that a beam of light traveling *from the ground upward* has not yet been occluded by vegetation up to that layer**.
+
+This interpretation fits the TLS scanning geometry, where lower layers are sampled first and occlusion increases with height.
+
+### ALS Variant Used Here
+
+We assume that the highest return count in the column corresponds to full canopy closure (i.e., near-zero gap fraction). This allows us to use the maximum as a local normalization factor:
+
+- \( p_i = \frac{N_i}{N_{\max}} \)
+- \( LAD_i = -\ln(1 - p_i) / (k \cdot dz) \)
+
+This **does not model occlusion directly**, but gives a consistent LAD profile for column-wise clustering.
+
+## Full Workflow: Voxelization to ENVI-met 3D Trees
+
+### Normalize ALS Height and Filter Ground
+
+```r
+las <- readLAS(las_file)
+las <- normalize_height(las, knnidw(k = 6, p = 2))
+las <- filter_poi(las, Z > 0)
+```
+
+### Voxelize ALS Point Cloud
+
+```r
+voxels <- voxel_metrics(las, ~length(Z), res = res_xy, dz = res_z)
+```
+
+### Convert Voxel Counts to LAD using ALS-based Beer's Law
+
+```r
+lad_df <- convert_voxel_lad_long(voxels, res_z = res_z, k = k, scale_factor = scale_factor)
+```
+
+### Cluster Similar LAD Profiles
+
+We reduce the number of ENVI-met profiles by grouping similar LAD profiles using k-means clustering. LAD profiles are pivoted to a wide matrix (z-layers as columns):
+
+```r
+lad_df$xy_key <- paste(lad_df$x, lad_df$y)
+lad_matrix <- lad_df %>% 
+  tidyr::pivot_wider(names_from = z, values_from = lad, values_fill = 0) %>%
+  column_to_rownames("xy_key") %>%
+  as.matrix()
+clustering <- kmeans(lad_matrix, centers = n_clusters, nstart = 10)
+lad_df$cluster <- clustering$cluster[match(lad_df$xy_key, rownames(lad_matrix))]
+```
+
+### Assign 6-Character ENVIMET_IDs
+
+Each LAD cluster is assigned a unique identifier that begins with "S" and uses base36 encoding (0–9, A–Z):
+
+```r
+int_to_base36 <- function(n, width = 5) {
+  chars <- c(0:9, LETTERS)
+  base <- length(chars)
+  result <- character()
+  while (n > 0) {
+    result <- c(chars[(n %% base) + 1], result)
+    n <- n %/% base
+  }
+  result <- paste(result, collapse = "")
+  padded <- sprintf(paste0("%0", width, "s"), result)
+  paste0("S", substr(gsub(" ", "0", padded), 1, width))
+}
+```
+
+### Export Point Locations as GIS Layer
+
+Each unique LAD column becomes a point in a GeoPackage, tagged with its ENVIMET_ID.
+
+```r
+sf_points <- st_as_sf(point_df, coords = c("x", "y"), crs = crs_code)
+st_write(sf_points, output_gpkg, delete_layer = TRUE)
+```
+
+### Export Clustered LAD Profiles as ENVI-met 3DPLANT XML
+
+The LAD profile per cluster is exported to a `.pld` file using XML.
+
+```r
+export_lad_to_envimet3d(lad_df, file_out = xml_output_file)
+```
+
+## Concept of Pseudo-3D Tree Columns
+
+Each clustered LAD profile is interpreted as a **pseudo-3D vegetation column**. These are not derived from segmented individual trees but represent aggregated vertical structure typical for a 2 × 2 m area.
+
+This approach provides a balance between realism and simplicity:
+
+- It allows **realistic vertical vegetation profiles** from ALS
+- Reduces complexity through **clustering**
+- Provides **efficient integration into ENVI-met** via both:
+  - GIS point layers with `ENVIMET_ID`
+  - XML-based 3DPLANT definitions
+
+Pseudo-3D trees enable **realistic microclimate domains** with vegetation heterogeneity without requiring full 3D reconstruction.
+
+## TLS vs ALS LAD Computation Summary
+
+| Aspect              | TLS                                 | ALS                               |
+|---------------------|--------------------------------------|-----------------------------------|
+| View Direction      | Bottom-up                           | Top-down                          |
+| Occlusion Bias      | Undersamples upper canopy           | Undersamples lower canopy         |
+| LAD Estimation      | Cumulative bottom-up (Beer)         | Normalized per column (max count) |
+| Typical Use Case    | Detailed single tree analysis       | Large-area structure sampling     |
+
+## Conclusion and Limitations
+
+This pipeline offers an efficient method to integrate voxelized ALS data into ENVI-met's 3DPLANT framework by:
+
+- Estimating LAD profiles via a Beer–Lambert-based approximation
+- Clustering voxel columns into representative pseudo-3D vegetation types
+- Exporting both point geometries and XML-based plant profiles
+
+**Advantages:**
+- Scalable to large ALS datasets
+- Preserves key structural heterogeneity
+- Compatible with ENVI-met simulation domains
+
+**Limitations:**
+- Assumes that the maximum voxel return represents full canopy cover, which may not hold in sparse stands
+- LAD estimation is empirical; it does not model true light attenuation or occlusion
+- The pseudo-3D approach does not represent individual trees or crown geometry
+- Clustering may smooth out fine-scale vertical variability
+
+Future improvements could include stratified LAD normalization, occlusion-aware corrections, or hybrid ALS-TLS fusion for enhanced realism.
+
+## References
+
+- Béland, M., et al. (2014). *Remote Sensing of Environment*
+- Calders, K., et al. (2015). *Methods in Ecology and Evolution*
+- Jupp, D. L. B., et al. (2009). *Remote Sensing of Environment*
+
+## Script Reference
+
+```r
+source("src/microclimate_ALS.R")
+```
+
+This source contains the complete processing workflow from voxel metrics to XML generation.
+
+## References
+
+-   Calders et al. (2015). Nondestructive biomass estimation via TLS. *Methods Ecol Evol*, 6:198–208.<https://doi.org/10.1111/2041-210X.12301>
+- Chen et al. (2018): Estimation of LAI in open-canopy forests using TLS and path length models. *Agric. For. Meteorol.* 263, 323–333. [https://doi.org/10.1016/j.agrformet.2018.09.006](https://doi.org/10.1016/j.agrformet.2018.09.006)
+-   ENVI-met *PLANT3D* specification: <https://www.envi-met.net/documents/papers/overview30.pdf>
+-   ENVI-met *Albero* overview: <https://envi-met.com/tutorials/albero-overview>
+-   ENVI-met KB – *Obtaining Leaf Area Density*: <https://envi-met.info/doku.php?id=kb:lad#obtaining_leaf_area_density_data>
+-   ENVI-met *dbmanager* documentation: <https://envi-met.info/doku.php?id=apps:dbmanager:start>
+-   ENVI-met Vegetation Tutorial (YouTube): <https://www.youtube.com/watch?v=KGRLnXAXZds>
+-   Flynn et al. (2023) – TLS-based vegetation index estimation; compares methods and highlights complexities in Mediterranean forest. *Biogeosciences*, 20(13), 2769–2784. [doi:10.5194/bg-20-2769-2023](https://doi.org/10.5194/bg-20-2769-2023)
+-   Hosoi & Omasa (2006). Voxel-based 3D tree modeling. *IEEE TGRS*, 44(12), 3610–3618. <https://doi.org/10.1109/TGRS.2006.881743>
+-   Prusinkiewicz & Lindenmayer (1990). *The Algorithmic Beauty of Plants*. Springer. <https://doi.org/10.1007/978-1-4613-8476-2>
+-   Oshio & Asawa (2016). Solar transmittance of urban trees. *IEEE TGRS*, 54(9), 5483–5492. <https://doi.org/10.1109/TGRS.2016.2565699>
+-   Simon, Sinsel & Bruse (2020). Fractal trees in ENVI-met. *Forests*, 11(8), 869. <https://doi.org/10.3390/f11080869>
+-   Wilkes et al. (2017). TLS acquisition strategies. *Remote Sens Environ*, 196, 140–153. <https://doi.org/10.1016/j.rse.2017.04.030>
+-   Chen et al. (2018). LAI from TLS. *Agr Forest Meteorol*, 263, 323–333. <https://doi.org/10.1016/j.agrformet.2018.09.006>
+-   Yin et al. (2019). Shading and thermal comfort. *Sustainability*, 11(5), 1355. <https://doi.org/10.3390/su11051355>
+-   Zhang (2024). Green layouts in ENVI-met. *Informatica*, 48(23). <https://doi.org/10.31449/inf.v48i23.6881>
+Certainly. Here's the reference adapted to match your current compact style:
+
+
+

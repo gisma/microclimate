@@ -1,0 +1,34 @@
+---
+title: ""
+
+open-graph:
+  description: "Micro-Climate Modeling with Envi_Met "
+  image: /images/envi_met_title.png
+twitter-card:
+  description: "Micro-Climate Modeling with Envi_Met"
+  image: /images/envi_met_title.png
+comments: false
+---
+
+This course teaches how to use terrestrial laser scanning (TLS) to model individual trees and their effects on microclimate. You’ll learn how to turn detailed 3D scans into leaf area density (LAD) profiles and use them in ENVI-met for realistic tree simulations.
+
+What you’ll learn:
+What LAD means and why it matters for tree–climate interaction
+
+- How to process TLS data into vertical tree profiles
+
+- How to create 3D tree objects from LAD for use in ENVI-met
+
+- How to choose between simple scaling and light-based LAD models
+
+This course is hands-on, focused, and designed for clear outcomes: understanding tree structure, visualizing it, and using it in a climate model.
+
+  <iframe src="doc/tree_voxel_viewer.html"
+          width="850"
+          height="560"
+          style="border: none; outline: none; display: block;"></iframe>
+
+
+
+
+8

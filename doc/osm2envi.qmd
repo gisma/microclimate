@@ -1,0 +1,178 @@
+---
+title: "QGIS ENVIMET Preprocessor"
+author: "gisma"
+format: html
+engine: knitr
+---
+
+# Overview
+
+The `OSM2Envi_met` QGIS Processing tool provides a fully automated workflow for preparing spatial input data from OpenStreetMap (OSM) and elevation datasets for use in ENVI-met 3D simulations. It combines a Python-based QGIS interface with a shell script that performs a robust geospatial preprocessing pipeline via `qgis_process`, `gdal`, and `ogr2ogr`.
+
+This document describes how to install the tool, explains the internal processing workflow, and provides a link to the complete codebase.
+
+---
+
+# Quick Access
+
+📦 **Download the entire tool as ZIP**:  
+https://github.com/gisma/qgis-processing-workflows/archive/refs/heads/main.zip
+
+💻 **Browse the repository online**:  
+https://github.com/gisma/qgis-processing-workflows
+
+---
+
+# Installation
+
+## Requirements
+
+To run this tool successfully, you need:
+
+- QGIS 3.28+ with `qgis_process` installed and accessible from the command line
+- GDAL with `ogr2ogr` and `gdal_calc.py`
+- A Bash shell (macOS/Linux, or Git Bash on Windows)
+
+## Setup Steps
+
+1. Download the tool:
+
+   - From GitHub as ZIP:  
+     https://github.com/gisma/qgis-processing-workflows/archive/refs/heads/main.zip
+
+   - Or clone via Git:
+     git clone https://github.com/gisma/qgis-processing-workflows.git
+
+2. Copy the relevant scripts to your QGIS processing script directory:
+
+   ~/.local/share/QGIS/QGIS3/profiles/default/processing/scripts/
+   ├── osm2envi_qgis.sh       # Main processing Bash script
+   └── osm2envi_tool.py       # QGIS Processing tool wrapper
+
+3. Make the Bash script executable:
+
+   chmod +x osm2envi_qgis.sh
+
+4. Restart QGIS.  
+   The tool will now appear under:
+   Processing Toolbox → Envi_met Tools → OSM2Envi_met
+
+---
+
+# Parameters
+
+Parameter     | Type              | Required | Description
+--------------|-------------------|----------|------------------------------------------------------------
+OSM           | File              | Yes      | Path to input `.osm` file
+DEM           | File              | No       | DEM raster, required if DSM is used
+DSM           | File              | No       | DSM raster, required if DEM is used
+CRS           | Coordinate system | Yes      | Target projection (e.g., EPSG:25832)
+EXTENT        | Bounding box      | Yes      | Spatial extent to clip data
+LOAD_LAYERS   | Boolean           | No       | Load output into QGIS after processing
+
+---
+
+# Workflow Description
+
+The internal script performs the following geospatial operations:
+
+## 1. OSM Conversion
+
+- Converts the `.osm` file into a multi-layered GeoPackage using `ogr2ogr`.
+
+## 2. Feature Extraction
+
+- Extracts thematic layers from `multipolygons` or `lines` using SQL expressions:
+  - Vegetation: landuse like `forest`, `meadow`, `orchard`, etc.
+  - Surfaces: roads and natural surfaces from `highway` and `landuse`
+  - Buildings: all OSM geometries tagged as `building`
+
+- Each layer is:
+  - Reprojected into the target CRS using `qgis_process`
+  - Clipped to the specified extent
+
+## 3. Classification (ENVIMET ID)
+
+- Assigns an `ENVIMET_ID` attribute based on feature type:
+  - Forest → 0000SM
+  - Asphalt → 0200AK
+  - Industrial landuse → 0200AK
+  - Wetland → 0200LI
+
+- Classification is done using SQL CASE statements in `qgis_process:fieldcalculator`.
+
+## 4. Height Extraction (optional)
+
+If both DSM and DEM are provided:
+
+- Calculates a difference raster (DSM − DEM) using `gdal_calc.py`
+- Computes mean building heights (`height_mean`) via zonal statistics
+- Adds height attribute to the building layer
+
+If no elevation data is provided, this step is skipped.
+
+## 5. Road Buffering
+
+- Buffers road geometries based on `highway` type:
+  - Primary: 10 m, Secondary: 6 m, Tertiary: 4 m, Track: 1 m
+
+- Buffers are classified like surfaces and merged later.
+
+## 6. Layer Merging
+
+- Merges:
+  - Buffered roads
+  - Surface landuse polygons
+
+- Creates a unified surface layer for ENVIMET (`*_surface_final.gpkg`)
+
+## 7. Cleanup
+
+- Deletes all intermediate files:
+  - `_tmp.gpkg`, `_proj.gpkg`, `_clip.gpkg`
+
+- Keeps only the final classified and merged output layers
+
+## 8. Optimization for ENVI-met
+
+- Retains only necessary fields:
+  - Geometry
+  - `ENVIMET_ID`
+  - `height_mean` (if computed)
+
+- Saves final layers as:
+  - `*_surface_final_envimet.gpkg`
+  - `*_vegetation_final_envimet.gpkg`
+  - `*_buildings_final_envimet.gpkg`
+
+---
+
+# Output Files
+
+Filename                            | Content
+------------------------------------|----------------------------------------------------------
+*_surface_final_envimet.gpkg        | Merged surface classes (landuse + roads)
+*_vegetation_final_envimet.gpkg     | Vegetation polygons with `ENVIMET_ID`
+*_buildings_final_envimet.gpkg      | Buildings, optionally with `height_mean`
+qgis_<area>.log                     | Processing log with detailed diagnostics
+
+---
+
+# Logging and Error Handling
+
+- All shell output is streamed into the QGIS console.
+- Colored Bash output is stripped for readability.
+- Full logs are written to:
+
+  /path/to/output/qgis_<research_area>.log
+
+- If a required input is missing or a step fails, the script aborts and QGIS reports the issue via `feedback.reportError()`.
+
+---
+
+# Summary
+
+This tool provides a robust, reproducible, and spatially-aware way to prepare `.osm` files for ENVI-met 3DPLANT and surface modeling. By combining QGIS processing, GDAL utilities, and Bash automation, it minimizes manual preprocessing and produces clean, simulation-ready outputs for urban climate studies.
+
+GitHub repository:  
+https://github.com/gisma/qgis-processing-workflows
