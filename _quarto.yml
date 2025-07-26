@@ -30,8 +30,8 @@ website:
     collapse-level: 1
     contents:
       - doc/evaluation.qmd
+      - doc/fluxes_corrected.qmd          
       - doc/tls_v1_2.qmd
-      - doc/fluxes_corrected.qmd
       - doc/osm2envi.qmd
       - doc/treespecies.qmd
       - text: "---"
